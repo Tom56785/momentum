@@ -7,6 +7,14 @@
   padding: 0;
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
+  max-height: calc(100dvh - 32px);
+}
+
+/* On phones, sit near the top so the on-screen keyboard doesn't cover the dialog. */
+@media (max-width: 600px) {
+  .dialog {
+    margin-top: max(16px, 6dvh);
+  }
 }
 
 .dialog[open] {

@@ -63,6 +63,14 @@
     border-color var(--dur-fast);
 }
 
+/* Ellipsis needs a plain block child; it doesn't apply to the flex container itself. */
+.chipText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chipOn {
   background: var(--accent-soft);
   border-color: transparent;
@@ -72,6 +80,18 @@
 .count {
   font-size: var(--text-xs);
   color: var(--success);
+}
+
+@media (max-width: 600px), (pointer: coarse) {
+  .wrap {
+    top: max(16px, env(safe-area-inset-top));
+    bottom: auto;
+  }
+
+  .chip {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
 }
 
 @keyframes capture-in {

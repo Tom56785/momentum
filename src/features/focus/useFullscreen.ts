@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
-export function useFullscreen(): { active: boolean; toggle: () => void } {
+export function useFullscreen(): { supported: boolean; active: boolean; toggle: () => void } {
+  // iPhone Safari has no element fullscreen for web pages.
+  const supported = typeof document !== 'undefined' && !!document.fullscreenEnabled
   const [active, setActive] = useState(() => typeof document !== 'undefined' && !!document.fullscreenElement)
   useEffect(() => {
     const onChange = () => setActive(!!document.fullscreenElement)
@@ -8,8 +10,9 @@ export function useFullscreen(): { active: boolean; toggle: () => void } {
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
   const toggle = () => {
+    if (!supported) return
     if (document.fullscreenElement) void document.exitFullscreen()
     else void document.documentElement.requestFullscreen?.().catch(() => undefined)
   }
-  return { active, toggle }
+  return { supported, active, toggle }
 }

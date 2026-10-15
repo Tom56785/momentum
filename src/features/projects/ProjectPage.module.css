@@ -120,7 +120,7 @@
 
 .metaRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -153,11 +153,22 @@
 
 @media (max-width: 800px) {
   .columns {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) so wide rows shrink instead of pushing the page wider than the screen. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .titleRow {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .titleField input {
+    font-size: var(--text-lg);
+  }
+
+  .metaRow {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

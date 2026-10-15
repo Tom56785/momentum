@@ -71,6 +71,8 @@ const PATHS = {
     </>
   ),
   arrowLeft: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  arrowUp: <path d="M12 19V5M6 11l6-6 6 6" />,
+  arrowDown: <path d="M12 5v14M6 13l6 6 6-6" />,
   keyboard: (
     <>
       <rect x="2.5" y="6" width="19" height="12" rx="2" />

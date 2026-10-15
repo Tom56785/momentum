@@ -284,11 +284,13 @@ export function FocusPage() {
       <span className={styles.projectTitle}>{project.title}</span>
       <div className={styles.topIcons}>
         <IconButton icon="inbox" label="Park a thought (P)" onClick={() => setParkOpen(true)} />
-        <IconButton
-          icon={fullscreen.active ? 'compress' : 'expand'}
-          label={fullscreen.active ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-          onClick={fullscreen.toggle}
-        />
+        {fullscreen.supported && (
+          <IconButton
+            icon={fullscreen.active ? 'compress' : 'expand'}
+            label={fullscreen.active ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+            onClick={fullscreen.toggle}
+          />
+        )}
       </div>
     </header>
   )

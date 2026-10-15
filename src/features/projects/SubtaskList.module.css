@@ -206,4 +206,38 @@
   .expanded {
     padding-left: var(--space-3);
   }
+
+  /* Phase and timebox chips drop under the title instead of squeezing it off-screen. */
+  .main {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .title {
+    flex: 1 1 0;
+  }
+
+  .meta {
+    width: 100%;
+    justify-content: flex-end;
+    padding-left: 60px;
+    margin-top: -4px;
+  }
+}
+
+/* Touch screens: drag handles do nothing, so hide them; reorder from the step panel. */
+@media (pointer: coarse) {
+  .grip {
+    display: none;
+  }
+
+  .check {
+    width: 28px;
+    height: 28px;
+    margin: 8px;
+  }
+
+  .title {
+    padding: var(--space-3) var(--space-2);
+  }
 }

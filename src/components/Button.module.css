@@ -131,3 +131,20 @@
 .iconActive {
   color: var(--accent);
 }
+
+/* Comfortable finger-sized targets on touch screens (about 44px). */
+@media (pointer: coarse) {
+  .icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .iconSm {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sm {
+    padding: var(--space-2) var(--space-3);
+  }
+}

@@ -229,6 +229,9 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
             </select>
             <TimeboxPicker value={subtask.timeboxMinutes} onChange={(m) => void updateSubtask(subtask.id, { timeboxMinutes: m })} />
             <span className={styles.spacer} />
+            {/* Reordering without drag-and-drop, which touch screens don't support. */}
+            <IconButton small icon="arrowUp" label="Move step up" disabled={index === 0} onClick={() => onMove(index - 1)} />
+            <IconButton small icon="arrowDown" label="Move step down" disabled={index === count - 1} onClick={() => onMove(index + 1)} />
             <IconButton small icon="trash" label="Delete step" onClick={() => void remove()} />
           </div>
           <textarea

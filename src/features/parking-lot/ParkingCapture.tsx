@@ -92,7 +92,7 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
         >
           {linked ? (
             <>
-              <Icon name="link" size={12} /> {projectTitle}
+              <Icon name="link" size={12} /> <span className={styles.chipText}>{projectTitle}</span>
             </>
           ) : (
             'Not related'
