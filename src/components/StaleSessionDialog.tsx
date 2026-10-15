@@ -55,7 +55,7 @@ export function StaleSessionDialog() {
       </p>
       <DialogActions>
         <Button onClick={() => void resolve(true)}>Keep the time</Button>
-        <Button variant="primary" autoFocus onClick={() => void resolve(false)}>
+        <Button variant="primary" data-autofocus onClick={() => void resolve(false)}>
           End it at {lastTime}
         </Button>
       </DialogActions>

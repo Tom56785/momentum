@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
-import { HintBar } from '../../components/HintBar'
+import { HintBar, type Hint } from '../../components/HintBar'
 import { createProject } from '../../db/actions'
 import { db } from '../../db/db'
 import type { Subtask } from '../../db/types'
@@ -134,8 +134,12 @@ export function OverviewPage() {
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onImported={onImported} />
       <HintBar
         hints={[
-          ['Enter', 'Open project'],
-          ['F', 'Focus on selected'],
+          ...(active.length
+            ? ([
+                ['Enter', 'Open project'],
+                ['F', 'Focus on selected'],
+              ] as Hint[])
+            : []),
           ['I', 'Import'],
           ['?', 'All shortcuts'],
         ]}

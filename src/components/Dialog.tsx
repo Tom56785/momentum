@@ -2,6 +2,14 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { IconButton } from './Button'
 import styles from './Dialog.module.css'
 
+// Remember the last focused element outside any dialog, so closing a dialog can return focus there.
+let lastFocusOutsideDialogs: HTMLElement | null = null
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', (e) => {
+    if (e.target instanceof HTMLElement && !e.target.closest('dialog')) lastFocusOutsideDialogs = e.target
+  })
+}
+
 interface DialogProps {
   open: boolean
   title?: ReactNode
@@ -13,7 +21,10 @@ interface DialogProps {
   labelledBy?: string
 }
 
-/** Modal built on the native <dialog>: focus trapping and Escape come for free. */
+/**
+ * Modal built on the native <dialog>: focus trapping and Escape come for free.
+ * Mark the element that should receive focus with `data-autofocus`.
+ */
 export function Dialog({ open, title, onClose, size = 'normal', children, hideClose, labelledBy }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
 
@@ -21,11 +32,15 @@ export function Dialog({ open, title, onClose, size = 'normal', children, hideCl
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) {
-      const previous = document.activeElement as HTMLElement | null
+      const previous = lastFocusOutsideDialogs
       dialog.showModal()
+      // React's autoFocus can't focus inside a closed <dialog>, so dialogs mark their
+      // initial focus with data-autofocus; otherwise the first field gets it.
+      const initial = dialog.querySelector<HTMLElement>('[data-autofocus]') ?? dialog.querySelector<HTMLElement>('input:not([type=radio]):not([type=checkbox]):not([type=file]), textarea')
+      initial?.focus()
       return () => {
         if (dialog.open) dialog.close()
-        previous?.focus?.()
+        if (previous && document.contains(previous)) previous.focus()
       }
     }
   }, [open])

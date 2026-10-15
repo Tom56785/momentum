@@ -12,6 +12,11 @@ export function isTypingTarget(el: EventTarget | null): boolean {
   return false
 }
 
+function isActivatable(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  return el.closest('button, a[href], summary, input, [role="button"], [role="menuitem"], [role="checkbox"]') !== null
+}
+
 /** Normalises a key event to names like "Space", "Mod+Enter", "Escape", "?", "b", "ArrowUp". */
 export function keyName(e: KeyboardEvent): string | undefined {
   const mod = e.ctrlKey || e.metaKey
@@ -43,6 +48,8 @@ export function useShortcuts(map: ShortcutMap, enabled = true): void {
       return
     }
     if (isModalOpen()) return
+    // Enter and Space on a focused control activate that control, as usual.
+    if ((name === 'Enter' || name === 'Space') && isActivatable(e.target)) return
     const handler = map[name]
     if (handler) {
       e.preventDefault()

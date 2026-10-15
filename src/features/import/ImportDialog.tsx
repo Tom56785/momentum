@@ -103,7 +103,7 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
       >
         <textarea
           className={['textarea', styles.textarea].join(' ')}
-          autoFocus
+          data-autofocus
           spellCheck={false}
           placeholder={'Paste JSON here, or drop a .json file\n\n{ "schemaVersion": 1, "projects": [ … ] }'}
           aria-label="Import JSON"

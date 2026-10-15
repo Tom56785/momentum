@@ -14,7 +14,7 @@ const DEFAULT_FIELD_HINTS: Hint[] = [
 function parseFieldHints(el: Element | null): Hint[] | null {
   if (!el || !isTypingTarget(el)) return null
   const attr = el.getAttribute('data-hints')
-  if (attr === null) return DEFAULT_FIELD_HINTS
+  if (attr === null) return el instanceof HTMLTextAreaElement ? [['Esc', 'Done']] : DEFAULT_FIELD_HINTS
   if (attr === '') return []
   return attr.split('|').map((pair) => {
     const [key, ...label] = pair.split(':')

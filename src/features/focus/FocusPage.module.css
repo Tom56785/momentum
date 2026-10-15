@@ -1,0 +1,522 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transition: background-color var(--dur-slow) var(--ease-out);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.projectTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.topIcons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+}
+
+.center svg {
+  color: var(--success);
+}
+
+/* ---- Banners (break prompt, timebox prompt) ---- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  font-size: var(--text-sm);
+  animation: rise-in var(--dur-slow) var(--ease-out);
+}
+
+.banner > svg {
+  color: var(--accent);
+  flex: none;
+}
+
+.banner > span {
+  flex: 1;
+  min-width: 200px;
+}
+
+.bannerActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ---- Breadcrumb ---- */
+
+.breadcrumb {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 620px;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  animation: rise-in var(--dur) var(--ease-out);
+}
+
+.breadcrumb > svg {
+  color: var(--accent);
+  margin-top: 3px;
+  flex: none;
+}
+
+.breadcrumb > div {
+  flex: 1;
+}
+
+.breadcrumbLabel {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ---- Task card ---- */
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+@property --challenge-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5);
+  border-radius: 24px;
+  background: var(--bg-elevated);
+  text-align: center;
+  isolation: isolate;
+  animation: card-in var(--dur-slow) var(--ease-spring);
+}
+
+/* Challenge effect: a slowly turning gradient border and soft glow. Always present but
+   invisible, so it fades in and out rather than snapping. */
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease-out);
+}
+
+.card::before {
+  inset: -2px;
+  z-index: -1;
+  border-radius: 26px;
+  background: conic-gradient(from var(--challenge-angle), var(--glow-a), var(--glow-b), var(--glow-c), var(--glow-a));
+  animation: challenge-spin 6s linear infinite;
+}
+
+.card::after {
+  inset: 0;
+  z-index: -1;
+  border-radius: 24px;
+  background: var(--bg-elevated);
+  box-shadow: 0 0 40px 4px color-mix(in srgb, var(--glow-a) 28%, transparent);
+}
+
+.challenge::before,
+.challenge::after {
+  opacity: 1;
+}
+
+@keyframes challenge-spin {
+  to {
+    --challenge-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card::before {
+    animation: none;
+  }
+}
+
+.stepLabel {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.taskTitle {
+  font-size: clamp(26px, 4.5vw, var(--text-3xl));
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.description {
+  color: var(--text-muted);
+  max-width: 560px;
+  white-space: pre-wrap;
+}
+
+/* ---- Hidden time ---- */
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-height: 30px;
+  margin-top: var(--space-2);
+}
+
+.timeItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.timeValue {
+  font-variant-numeric: tabular-nums;
+  animation: fade-in var(--dur) var(--ease-out);
+}
+
+.revealButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  touch-action: manipulation;
+  transition: color var(--dur-fast), background-color var(--dur-fast);
+}
+
+.revealButton:hover {
+  color: var(--text);
+  background: var(--bg-sunken);
+}
+
+.revealValue {
+  min-width: 0;
+  transition: opacity var(--dur);
+}
+
+.revealShown {
+  min-width: 80px;
+}
+
+.neutral {
+  color: var(--neutral-note);
+}
+
+/* ---- Progress ---- */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 520px;
+}
+
+.progressCount {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bump {
+  animation: pop var(--dur-slow) var(--ease-spring);
+  color: var(--success);
+}
+
+/* ---- Controls ---- */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.challengeWrap {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  animation: rise-in var(--dur) var(--ease-out);
+}
+
+.menuLabel {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.menuItem {
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+  outline: none;
+}
+
+/* ---- Notes ---- */
+
+.notes {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-7);
+}
+
+.notesInput {
+  width: 100%;
+  min-height: 72px;
+  max-height: 30vh;
+  resize: vertical;
+  border: 1px solid transparent;
+  border-top-color: var(--border);
+  background: transparent;
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text);
+  transition: border-color var(--dur), background-color var(--dur);
+}
+
+.notesInput:focus {
+  outline: none;
+  border-color: var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+/* ---- Exit dialog ---- */
+
+.exitForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dialogHints {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-align: right;
+}
+
+/* ---- Project complete ---- */
+
+.complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-4) 0 var(--space-2);
+}
+
+.complete h2 {
+  font-size: var(--text-xl);
+}
+
+.completeBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--success);
+  color: #fff;
+  animation: badge-in var(--dur-slow) var(--ease-spring);
+}
+
+.completeTitle {
+  color: var(--text-muted);
+}
+
+.completeStats {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+/* ---- Break mode ---- */
+
+.breakPage {
+  background: var(--bg-break);
+}
+
+.breakMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  text-align: center;
+}
+
+.breakOrb {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--glow-b) 70%, white), var(--glow-b));
+  opacity: 0.5;
+  animation: orb-breathe 8s ease-in-out infinite;
+  margin-bottom: var(--space-4);
+}
+
+.breakTitle {
+  font-size: var(--text-3xl);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.breakSuggestion {
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+  animation: fade-in 1.2s var(--ease-out);
+}
+
+.breakReady {
+  min-height: 28px;
+  color: var(--success);
+  font-size: var(--text-lg);
+  opacity: 0;
+  transition: opacity 1.5s var(--ease-out);
+}
+
+.breakReadyShown {
+  opacity: 1;
+}
+
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+@keyframes badge-in {
+  from {
+    transform: scale(0.3) rotate(-20deg);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .taskRow {
+    gap: var(--space-1);
+  }
+
+  .secondary {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
