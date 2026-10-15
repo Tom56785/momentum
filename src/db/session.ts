@@ -1,6 +1,8 @@
+import { challengeElapsedMs } from '../domain/rules'
 import { transition, type SessionAction, type Via } from '../domain/session'
+import { workMs } from '../domain/time'
 import { db, newId } from './db'
-import { getSession, getSettings, setAppState } from './store'
+import { deleteAppState, getAppState, getSession, getSettings, logEvent, setAppState } from './store'
 import type { Session } from './types'
 
 /** Tables every session write touches; transactions that call `applyAction` must include them. */
@@ -22,6 +24,32 @@ async function closeOpenSegments(at: number, knownId?: string): Promise<void> {
   }
 }
 
+/** Work time on one subtask, from its segments. */
+export async function subtaskWorkMs(subtaskId: string, now = Date.now()): Promise<number> {
+  return workMs(await db.segments.where('subtaskId').equals(subtaskId).toArray(), now)
+}
+
+/**
+ * Ends the active challenge without a win (cancelled, or time ran out), computing its
+ * elapsed work time from segments. Must run inside a transaction with SESSION_TABLES.
+ */
+export async function endChallengeInTx(
+  outcome: 'cancelled' | 'timeUp',
+  projectId?: string,
+  now = Date.now(),
+): Promise<void> {
+  const challenge = await getAppState('challenge')
+  if (!challenge) return
+  const elapsedMs = challengeElapsedMs(challenge, await subtaskWorkMs(challenge.subtaskId, now))
+  await deleteAppState('challenge')
+  await logEvent('challenge_ended', {
+    ts: now,
+    projectId,
+    subtaskId: challenge.subtaskId,
+    data: { outcome, elapsedMs, targetMinutes: challenge.targetMinutes },
+  })
+}
+
 /** Applies a session action. Must run inside a transaction that includes SESSION_TABLES. */
 export async function applyAction(action: SessionAction, via?: Via, now = Date.now()): Promise<Session> {
   const session = await getSession()
@@ -33,6 +61,16 @@ export async function applyAction(action: SessionAction, via?: Via, now = Date.n
   if (t.open) await db.segments.add(t.open)
   await setAppState('session', t.session)
   if (t.events.length) await db.events.bulkAdd(t.events)
+
+  // A challenge only lives on the session's current step. When the session moves off it
+  // (switch, delete, another project, clear), end it quietly. Completing the step is the
+  // exception: completeSubtask settles the challenge itself, as a win or not.
+  if (action.type !== 'complete') {
+    const challenge = await getAppState('challenge')
+    if (challenge && challenge.subtaskId !== t.session.subtaskId) {
+      await endChallengeInTx('cancelled', session.projectId, now)
+    }
+  }
   return t.session
 }
 

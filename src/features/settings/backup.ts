@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ALL_TABLES, db } from '../../db/db'
 import { updateSettings } from '../../db/store'
+import { formatPath } from '../import/parseImport'
 import { PHASES, type AppEvent } from '../../db/types'
 
 const projectRow = z.object({
@@ -128,8 +129,7 @@ export function parseBackup(text: string): ParsedBackup {
   const result = backupSchema.safeParse(json)
   if (!result.success) {
     const issue = result.error.issues[0]
-    const where = issue.path.map((p) => (typeof p === 'number' ? `[${p}]` : `.${String(p)}`)).join('').replace(/^\./, '')
-    return { ok: false, error: `This doesn't look like a Momentum backup (${where || 'file'}: ${issue.message}).` }
+    return { ok: false, error: `This doesn't look like a Momentum backup (${formatPath(issue.path)}: ${issue.message}).` }
   }
   return { ok: true, backup: result.data }
 }

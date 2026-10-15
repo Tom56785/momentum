@@ -44,7 +44,7 @@ export function ChallengeMenu({ active, beatMinutes, onStart, onCancelChallenge,
   }
 
   return (
-    <div ref={ref} className={styles.menu} role="menu" aria-label="Challenge" onKeyDown={onKeyDown}>
+    <div ref={ref} className={styles.menu} role="menu" aria-label="Challenge" data-own-keys onKeyDown={onKeyDown}>
       {active ? (
         <button type="button" role="menuitem" className={styles.menuItem} onClick={onCancelChallenge}>
           Stop challenge

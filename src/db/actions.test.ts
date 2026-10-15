@@ -5,6 +5,9 @@ import {
   addSubtask,
   completeSubtask,
   createProject,
+  deleteProject,
+  deleteSubtask,
+  endChallenge,
   enterFocus,
   exitFocus,
   moveSubtask,
@@ -15,6 +18,7 @@ import {
   startChallenge,
 } from './actions'
 import { db } from './db'
+import { segmentsOverlapping } from './reports'
 import { dispatch } from './session'
 import { getAppState, getSession } from './store'
 
@@ -111,7 +115,7 @@ describe('completing subtasks', () => {
   it('records a challenge win and personal best', async () => {
     const { projectId, ids } = await setupProject()
     await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
-    await startChallenge(ids[0], 15, 0, 'manual')
+    await startChallenge(ids[0], 15, 'manual')
     vi.setSystemTime(T0 + 12 * MINUTE)
     const result = await completeSubtask(ids[0])
     expect(result.challenge).toMatchObject({ outcome: 'beat', elapsedMs: 12 * MINUTE, newPersonalBest: true })
@@ -119,7 +123,7 @@ describe('completing subtasks', () => {
     expect(await getAppState('challenge')).toBeUndefined()
 
     // A slower win is not a new best.
-    await startChallenge(ids[1], 15, 0, 'manual')
+    await startChallenge(ids[1], 15, 'manual')
     vi.setSystemTime(T0 + 26 * MINUTE)
     const second = await completeSubtask(ids[1])
     expect(second.challenge).toMatchObject({ outcome: 'beat', newPersonalBest: false })
@@ -172,5 +176,103 @@ describe('parking lot conversions', () => {
     await db.parkingLot.update(itemId, { details: 'Current version is old' })
     const projectId = await parkingItemToProject(itemId)
     expect(await db.projects.get(projectId!)).toMatchObject({ title: 'Upgrade the build tool', summary: 'Current version is old' })
+  })
+})
+
+async function challengeEnds() {
+  return (await db.events.where('type').equals('challenge_ended').toArray()).map((e) => e.data)
+}
+
+describe('challenge lifecycle', () => {
+  it('is cancelled, with the right elapsed time, when switching steps', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    vi.setSystemTime(T0 + 4 * MINUTE)
+    await startChallenge(ids[0], 15, 'manual')
+    vi.setSystemTime(T0 + 7 * MINUTE)
+    await dispatch({ type: 'switch', subtaskId: ids[1] })
+    expect(await getAppState('challenge')).toBeUndefined()
+    expect(await challengeEnds()).toEqual([{ outcome: 'cancelled', elapsedMs: 3 * MINUTE, targetMinutes: 15 }])
+  })
+
+  it('is cancelled when its step is deleted', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 10, 'manual')
+    await deleteSubtask(ids[0])
+    expect(await getAppState('challenge')).toBeUndefined()
+    expect((await getSession()).subtaskId).toBe(ids[1])
+  })
+
+  it('is cancelled when its project is deleted', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 10, 'manual')
+    await deleteProject(projectId)
+    expect(await getAppState('challenge')).toBeUndefined()
+    expect(await getSession()).toEqual({ state: 'idle' })
+  })
+
+  it('survives a break on the same step', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 10, 'manual')
+    await dispatch({ type: 'startBreak' })
+    await dispatch({ type: 'resume' })
+    expect((await getAppState('challenge'))?.subtaskId).toBe(ids[0])
+  })
+
+  it('starting a new challenge ends the old one', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 10, 'manual')
+    vi.setSystemTime(T0 + 2 * MINUTE)
+    await startChallenge(ids[0], 25, 'manual')
+    expect(await getAppState('challenge')).toMatchObject({ targetMinutes: 25, workMsAtStart: 2 * MINUTE })
+    expect(await challengeEnds()).toEqual([{ outcome: 'cancelled', elapsedMs: 2 * MINUTE, targetMinutes: 10 }])
+  })
+
+  it('time-up uses work time from segments, not paused time', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 10, 'manual')
+    vi.setSystemTime(T0 + 6 * MINUTE)
+    await dispatch({ type: 'stop' })
+    vi.setSystemTime(T0 + 30 * MINUTE)
+    await dispatch({ type: 'start' })
+    vi.setSystemTime(T0 + 34 * MINUTE)
+    await endChallenge('timeUp')
+    expect(await challengeEnds()).toEqual([{ outcome: 'timeUp', elapsedMs: 10 * MINUTE, targetMinutes: 10 }])
+  })
+})
+
+describe('after the last step', () => {
+  it('the session no longer points at the finished step', async () => {
+    const { projectId, ids } = await setupProject(['only'])
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await completeSubtask(ids[0])
+    expect(await getSession()).toMatchObject({ state: 'paused', projectId, subtaskId: undefined })
+    // Starting again does nothing, so no time lands on a finished project.
+    await dispatch({ type: 'start' })
+    expect(await openSegments()).toHaveLength(0)
+    await enterFocus(projectId)
+    expect((await getSession()).subtaskId).toBeUndefined()
+  })
+})
+
+describe('segmentsOverlapping', () => {
+  it('includes long segments that started well before the window', async () => {
+    const { projectId, ids } = await setupProject()
+    const day = new Date('2026-10-15T00:00:00').getTime()
+    await db.segments.bulkAdd([
+      { id: 'old', kind: 'work', startedAt: day - 40 * 60 * MINUTE, endedAt: day - 30 * 60 * MINUTE },
+      { id: 'spans', kind: 'work', startedAt: day - 30 * 60 * MINUTE, endedAt: day + 60 * MINUTE },
+    ])
+    vi.setSystemTime(day - 28 * 60 * MINUTE)
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    vi.setSystemTime(day + 9 * 60 * MINUTE)
+    const ids2 = (await segmentsOverlapping(day, day + 24 * 60 * MINUTE)).map((s) => s.id).sort()
+    const openId = (await getSession()).openSegmentId!
+    expect(ids2).toEqual(['spans', openId].sort())
   })
 })

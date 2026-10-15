@@ -19,6 +19,8 @@ export function OverviewPage() {
   const [creating, setCreating] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const gridRef = useRef<HTMLDivElement>(null)
+  // The new-project input resolves exactly once: Enter, Escape or blur, whichever comes first.
+  const newProjectSettled = useRef(false)
 
   const data = useLiveQuery(async () => {
     const projects = await db.projects.orderBy('updatedAt').reverse().toArray()
@@ -64,15 +66,24 @@ export function OverviewPage() {
     !importOpen,
   )
 
-  const create = async () => {
-    const title = newTitle.trim()
-    if (!title) {
-      setCreating(false)
-      return
-    }
-    const id = await createProject({ title })
+  const openNewProject = () => {
+    newProjectSettled.current = false
     setNewTitle('')
+    setCreating(true)
+  }
+
+  const closeNewProject = () => {
+    newProjectSettled.current = true
     setCreating(false)
+    setNewTitle('')
+  }
+
+  const create = async (value: string) => {
+    if (newProjectSettled.current) return
+    const title = value.trim()
+    closeNewProject()
+    if (!title) return
+    const id = await createProject({ title })
     navigate(`/project/${id}?new=1`)
   }
 
@@ -95,18 +106,17 @@ export function OverviewPage() {
               data-hints="Enter:Create|Esc:Cancel"
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') void create()
+                if (e.key === 'Enter') void create(e.currentTarget.value)
                 if (e.key === 'Escape') {
                   e.preventDefault()
-                  setCreating(false)
-                  setNewTitle('')
+                  closeNewProject()
                 }
               }}
-              onBlur={() => void create()}
+              onBlur={(e) => void create(e.currentTarget.value)}
               aria-label="New project title"
             />
           ) : (
-            <Button icon="plus" onClick={() => setCreating(true)}>
+            <Button icon="plus" onClick={openNewProject}>
               New project
             </Button>
           )}

@@ -57,12 +57,27 @@ describe('session transitions', () => {
     expect(t.session.continuousWorkSince).toBe(T0) // continuity carries over
   })
 
-  it('completing the last subtask while working pauses', () => {
+  it('completing the last subtask while working pauses and lets go of the finished step', () => {
     const working = run(idle, { type: 'start', projectId: 'p', subtaskId: 's1' }, T0).session
     const t = run(working, { type: 'complete' }, T0 + MINUTE)
     expect(t.session.state).toBe('paused')
+    expect(t.session.subtaskId).toBeUndefined()
+    expect(t.session.projectId).toBe('p')
     expect(t.open).toBeUndefined()
     expect(t.closeAt).toBe(T0 + MINUTE)
+  })
+
+  it('completing the last subtask while paused lets go of it too', () => {
+    const paused: Session = { state: 'paused', projectId: 'p', subtaskId: 's1' }
+    const t = run(paused, { type: 'complete' }, T0)
+    expect(t.session.subtaskId).toBeUndefined()
+    // ...so start has nothing to start on.
+    expect(run(t.session, { type: 'start' }, T0).session).toBe(t.session)
+  })
+
+  it('targeting a project with no steps left clears a stale pointer', () => {
+    const paused: Session = { state: 'paused', projectId: 'p', subtaskId: 'done-step' }
+    expect(run(paused, { type: 'target', projectId: 'p' }, T0).session.subtaskId).toBeUndefined()
   })
 
   it('completing while paused just moves the pointer', () => {
@@ -181,6 +196,9 @@ describe('session transitions', () => {
     const ended = run(working, { type: 'endStale', endAt: T0 + 30 * MINUTE }, T0 + 600 * MINUTE)
     expect(ended.closeAt).toBe(T0 + 30 * MINUTE)
     expect(ended.session.state).toBe('paused')
+    expect(ended.events).toEqual([
+      { ts: T0 + 30 * MINUTE, type: 'work_stopped', projectId: 'p', subtaskId: 's1', data: { via: 'staleSession' } },
+    ])
     const kept = run(working, { type: 'keepStale' }, T0 + 600 * MINUTE)
     expect(kept.session.staleResolvedFor).toBe(working.openSegmentId)
     expect(kept.closeAt).toBeUndefined()

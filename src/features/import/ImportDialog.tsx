@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { Dialog, DialogActions } from '../../components/Dialog'
 import { Icon } from '../../components/Icon'
@@ -23,13 +23,17 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
   const [choices, setChoices] = useState<Map<number, DuplicateChoice>>(new Map())
   const [dragOver, setDragOver] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Latest text, so a slow duplicate lookup for older text can't overwrite newer results.
+  const latestText = useRef('')
 
   const update = async (next: string) => {
     setText(next)
+    latestText.current = next
     const parsed = parseImport(next)
     setResult(parsed)
     if (parsed.ok === true) {
       const dups = await findDuplicates(parsed.doc)
+      if (latestText.current !== next) return
       setDuplicates(dups)
       setChoices(new Map([...dups.keys()].map((i) => [i, 'replace' as const])))
     } else {
@@ -38,6 +42,7 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
   }
 
   const reset = () => {
+    latestText.current = ''
     setText('')
     setResult({ ok: 'empty' })
     setDuplicates(new Map())

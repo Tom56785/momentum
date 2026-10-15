@@ -1,7 +1,8 @@
 import type { AppEvent, Segment, Session } from '../db/types'
+import { continuousWorkMs } from './rules'
 import { MINUTE } from './time'
 
-export type Via = 'focus' | 'globalBar' | 'shortcut' | 'exitDialog' | 'prompt' | 'button'
+export type Via = 'focus' | 'globalBar' | 'shortcut' | 'exitDialog' | 'prompt' | 'button' | 'staleSession'
 
 export type SessionAction =
   /** Start work on the given (or current) subtask. From a break this behaves like resume. */
@@ -52,6 +53,11 @@ function breakSegment(ctx: TransitionContext): Segment {
   return { id: ctx.newId(), kind: 'break', startedAt: ctx.now }
 }
 
+/** The session after the open segment closes at `at` and nothing new opens. */
+function paused(s: Session, at: number): Session {
+  return { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: at }
+}
+
 /** Fields reset whenever an unbroken stretch of work ends. */
 function resetContinuity(s: Session): Session {
   return {
@@ -77,8 +83,14 @@ function breakMs(ctx: TransitionContext): number | undefined {
   return seg?.kind === 'break' ? Math.max(0, ctx.now - seg.startedAt) : undefined
 }
 
-function ev(ctx: TransitionContext, type: NewEvent['type'], s: Session, data?: Record<string, unknown>): NewEvent {
-  return { ts: ctx.now, type, projectId: s.projectId, subtaskId: s.subtaskId, data }
+function ev(
+  ctx: TransitionContext,
+  type: NewEvent['type'],
+  s: Session,
+  data?: Record<string, unknown>,
+  ts = ctx.now,
+): NewEvent {
+  return { ts, type, projectId: s.projectId, subtaskId: s.subtaskId, data }
 }
 
 /**
@@ -100,9 +112,8 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
       }
       if (s.state === 'working') {
         if (s.projectId === projectId && s.subtaskId === subtaskId) return same
-        const next: Session = { ...s, projectId, subtaskId }
         const open = workSegment(ctx, projectId, subtaskId)
-        return { session: { ...next, openSegmentId: open.id }, closeAt: ctx.now, open, events: [] }
+        return { session: { ...s, projectId, subtaskId, openSegmentId: open.id }, closeAt: ctx.now, open, events: [] }
       }
       const open = workSegment(ctx, projectId, subtaskId)
       const next: Session = {
@@ -118,8 +129,7 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
 
     case 'stop': {
       if (s.state !== 'working') return same
-      const next: Session = { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now }
-      return { session: next, closeAt: ctx.now, events: [ev(ctx, 'work_stopped', s, { via })] }
+      return { session: paused(s, ctx.now), closeAt: ctx.now, events: [ev(ctx, 'work_stopped', s, { via })] }
     }
 
     case 'complete': {
@@ -129,10 +139,14 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
           const next: Session = { ...s, subtaskId: action.nextSubtaskId, openSegmentId: open.id }
           return { session: next, closeAt: ctx.now, open, events: [] }
         }
-        const next: Session = { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now }
-        return { session: next, closeAt: ctx.now, events: [ev(ctx, 'work_stopped', s, { via })] }
+        // Nothing left: stop, and stop pointing at the finished step.
+        return {
+          session: { ...paused(s, ctx.now), subtaskId: undefined },
+          closeAt: ctx.now,
+          events: [ev(ctx, 'work_stopped', s, { via })],
+        }
       }
-      return { session: { ...s, subtaskId: action.nextSubtaskId ?? s.subtaskId }, events: [] }
+      return { session: { ...s, subtaskId: action.nextSubtaskId }, events: [] }
     }
 
     case 'switch': {
@@ -152,21 +166,18 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
 
     case 'target': {
       if (s.projectId === action.projectId) {
-        // Same project: keep the running subtask; otherwise move to the requested one.
-        if (s.state === 'working' || s.state === 'break' || !action.subtaskId) return same
+        // Same project: keep the running subtask; otherwise move to the requested one
+        // (or to none, when every step is done).
+        if (s.state === 'working' || s.state === 'break' || s.subtaskId === action.subtaskId) return same
         return { session: { ...s, subtaskId: action.subtaskId }, events: [] }
       }
       const base: Session = { ...s, projectId: action.projectId, subtaskId: action.subtaskId }
       if (s.state === 'working') {
-        return {
-          session: { ...base, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now },
-          closeAt: ctx.now,
-          events: [ev(ctx, 'work_stopped', s, { via })],
-        }
+        return { session: paused(base, ctx.now), closeAt: ctx.now, events: [ev(ctx, 'work_stopped', s, { via })] }
       }
       if (s.state === 'break') {
         return {
-          session: { ...base, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now },
+          session: paused(base, ctx.now),
           closeAt: ctx.now,
           events: [ev(ctx, 'break_ended', s, { via, breakMs: breakMs(ctx) })],
         }
@@ -193,8 +204,7 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
       if (s.state !== 'break') return same
       const events: NewEvent[] = [ev(ctx, 'break_ended', s, { via, breakMs: breakMs(ctx) })]
       if (!s.projectId || !s.subtaskId) {
-        const next: Session = { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now }
-        return { session: next, closeAt: ctx.now, events }
+        return { session: paused(s, ctx.now), closeAt: ctx.now, events }
       }
       const open = workSegment(ctx, s.projectId, s.subtaskId)
       const next: Session = {
@@ -212,7 +222,7 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
       if (s.state === 'working') return transition(s, { type: 'stop' }, ctx)
       if (s.state === 'break') {
         return {
-          session: { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: ctx.now },
+          session: paused(s, ctx.now),
           closeAt: ctx.now,
           events: [ev(ctx, 'break_ended', s, { via, breakMs: breakMs(ctx) })],
         }
@@ -229,22 +239,20 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
 
     case 'breakPromptShown': {
       if (s.breakPromptShownAt !== undefined) return same
-      const continuousWorkMs = s.continuousWorkSince === undefined ? 0 : ctx.now - s.continuousWorkSince
       return {
         session: { ...s, breakPromptShownAt: ctx.now },
-        events: [ev(ctx, 'break_prompt_shown', s, { continuousWorkMs })],
+        events: [ev(ctx, 'break_prompt_shown', s, { continuousWorkMs: continuousWorkMs(s, ctx.now) })],
       }
     }
 
     case 'snooze': {
-      const continuousWorkMs = s.continuousWorkSince === undefined ? 0 : ctx.now - s.continuousWorkSince
       return {
         session: {
           ...s,
           breakPromptSnoozedUntil: ctx.now + action.snoozeMinutes * MINUTE,
           breakPromptShownAt: undefined,
         },
-        events: [ev(ctx, 'break_prompt_snoozed', s, { continuousWorkMs })],
+        events: [ev(ctx, 'break_prompt_snoozed', s, { continuousWorkMs: continuousWorkMs(s, ctx.now) })],
       }
     }
 
@@ -256,8 +264,11 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
 
     case 'endStale': {
       if (s.state !== 'working') return same
-      const next: Session = { ...s, state: 'paused', openSegmentId: undefined, lastStoppedAt: action.endAt }
-      return { session: next, closeAt: action.endAt, events: [] }
+      return {
+        session: paused(s, action.endAt),
+        closeAt: action.endAt,
+        events: [ev(ctx, 'work_stopped', s, { via: 'staleSession' }, action.endAt)],
+      }
     }
 
     case 'keepStale': {

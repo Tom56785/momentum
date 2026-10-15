@@ -62,10 +62,10 @@ export function Watchers() {
   const timeUp = challenge !== undefined && isChallengeTimeUp(challenge, challengeWorkMs)
   useEffect(() => {
     if (!timeUp) return
-    void endChallenge('timeUp', challengeWorkMs).then(() => {
+    void endChallenge('timeUp').then(() => {
       showToast({ text: 'Challenge wrapped up — nice push.', duration: 4000 })
     })
-    // challengeWorkMs intentionally omitted: fire once when time runs out.
+    // Fire once when time runs out.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeUp])
 

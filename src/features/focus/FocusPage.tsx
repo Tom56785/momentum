@@ -89,7 +89,7 @@ export function FocusPage() {
       subtask,
       subtaskWorkMs,
       thresholdMinutes: settings.timeboxPromptMinutesLeft,
-      challengeActive: !!challenge,
+      challengeActive: !!activeChallenge,
     })
   useEffect(() => {
     if (!promptTimebox || !subtask) return
@@ -149,7 +149,6 @@ export function FocusPage() {
 
   const switchTo = async (id: string | undefined) => {
     if (!id) return
-    if (challenge) await endChallenge('cancelled', subtaskWorkMs)
     setTimeboxPromptFor(null)
     await dispatch({ type: 'switch', subtaskId: id })
   }
@@ -158,13 +157,13 @@ export function FocusPage() {
     if (!subtask) return
     setChallengeOpen(false)
     setTimeboxPromptFor(null)
-    await startChallenge(subtask.id, minutes, subtaskWorkMs, source)
+    await startChallenge(subtask.id, minutes, source)
     if (!working) await dispatch({ type: 'start', projectId, subtaskId: subtask.id }, 'focus')
   }
 
   const cancelChallenge = async () => {
     setChallengeOpen(false)
-    await endChallenge('cancelled', subtaskWorkMs)
+    await endChallenge('cancelled')
   }
 
   const toggleAllTime = () => {
@@ -289,7 +288,7 @@ export function FocusPage() {
 
       <main className={styles.main}>
         {breakPrompt && (
-          <div className={styles.banner} role="status">
+          <div className={styles.banner} role="status" data-own-keys>
             <Icon name="coffee" size={18} />
             <span>You've been going for a while. A short break helps the next stretch.</span>
             <div className={styles.bannerActions}>
@@ -304,7 +303,7 @@ export function FocusPage() {
         )}
 
         {timeboxPromptFor && timeboxPromptFor === subtask?.id && !activeChallenge && (
-          <div className={styles.banner} role="status">
+          <div className={styles.banner} role="status" data-own-keys>
             <Icon name="hourglass" size={18} />
             <span>Nearly at your timebox — want to turn on challenge mode?</span>
             <div className={styles.bannerActions}>

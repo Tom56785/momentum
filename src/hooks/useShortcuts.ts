@@ -51,7 +51,11 @@ export function useShortcuts(map: ShortcutMap, enabled = true, options: { spaceO
     }
     if (isModalOpen()) return
     // Enter and Space on a focused control activate that control, as usual.
-    const spaceIsOurs = name === 'Space' && options.spaceOverridesButtons
+    // Menus and banners mark themselves data-own-keys so Space still picks their buttons.
+    const spaceIsOurs =
+      name === 'Space' &&
+      options.spaceOverridesButtons &&
+      !(e.target instanceof HTMLElement && e.target.closest('[data-own-keys]'))
     if ((name === 'Enter' || name === 'Space') && !spaceIsOurs && isActivatable(e.target)) return
     const handler = map[name]
     if (handler) {

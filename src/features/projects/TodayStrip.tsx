@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { IconButton } from '../../components/Button'
 import { db } from '../../db/db'
+import { segmentsOverlapping } from '../../db/reports'
 import { todaySummary } from '../../domain/stats'
 import { DAY, formatDuration, startOfDay } from '../../domain/time'
 import { useReveal } from '../../hooks/useData'
@@ -13,8 +14,7 @@ export function TodayStrip() {
   const dayStart = startOfDay(now)
   const reveal = useReveal()
   const data = useLiveQuery(async () => {
-    // Segments that started up to a day earlier may still overlap today.
-    const segments = await db.segments.where('startedAt').above(dayStart - DAY).toArray()
+    const segments = await segmentsOverlapping(dayStart, dayStart + DAY)
     const events = await db.events.where('ts').aboveOrEqual(dayStart).toArray()
     return { segments, events }
   }, [dayStart])

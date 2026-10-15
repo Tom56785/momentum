@@ -2,7 +2,7 @@ import { challengeElapsedMs, nextTodo, sortByOrder } from '../domain/rules'
 import type { Via } from '../domain/session'
 import { MINUTE, workMs } from '../domain/time'
 import { db, newId } from './db'
-import { applyAction, dispatch, SESSION_TABLES } from './session'
+import { applyAction, dispatch, endChallengeInTx, SESSION_TABLES, subtaskWorkMs } from './session'
 import { deleteAppState, getAppState, getSession, logEvent, setAppState } from './store'
 import type { Challenge, ParkingLotItem, Phase, Project, Subtask } from './types'
 
@@ -147,20 +147,19 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
     }
 
     await db.subtasks.update(id, { status: 'done', completedAt: now })
-    const subtaskSegments = await db.segments.where('subtaskId').equals(id).toArray()
-    const subtaskWorkMs = workMs(subtaskSegments, now)
+    const workOnSubtask = await subtaskWorkMs(id, now)
     await logEvent('subtask_completed', {
       ts: now,
       projectId: subtask.projectId,
       subtaskId: id,
-      data: { workMs: subtaskWorkMs, timeboxMinutes: subtask.timeboxMinutes, phase: subtask.phase },
+      data: { workMs: workOnSubtask, timeboxMinutes: subtask.timeboxMinutes, phase: subtask.phase },
     })
 
     const result: CompleteResult = { nextSubtaskId: next?.id, projectCompleted: false }
 
     const challenge = await getAppState('challenge')
     if (challenge?.subtaskId === id) {
-      const elapsedMs = challengeElapsedMs(challenge, subtaskWorkMs)
+      const elapsedMs = challengeElapsedMs(challenge, workOnSubtask)
       const outcome = elapsedMs <= challenge.targetMinutes * MINUTE ? 'beat' : 'timeUp'
       const phase: Phase = subtask.phase ?? 'other'
       let newPersonalBest = false
@@ -232,17 +231,28 @@ export async function exitFocus(projectId: string, breadcrumb: string, stopTimer
 
 // ---------------------------------------------------------------- challenges
 
+/**
+ * Starts a challenge on the session's current step. Any existing challenge is ended first
+ * (logged as cancelled), so there is never more than one.
+ */
 export async function startChallenge(
   subtaskId: string,
   targetMinutes: number,
-  subtaskWorkMs: number,
   source: 'manual' | 'timeboxPrompt',
 ): Promise<void> {
-  const challenge: Challenge = { subtaskId, startedAt: Date.now(), targetMinutes, workMsAtStart: subtaskWorkMs }
-  const subtask = await db.subtasks.get(subtaskId)
-  await db.transaction('rw', db.appState, db.events, async () => {
+  await db.transaction('rw', [db.subtasks, ...SESSION_TABLES], async () => {
+    const now = Date.now()
+    const subtask = await db.subtasks.get(subtaskId)
+    await endChallengeInTx('cancelled', subtask?.projectId, now)
+    const challenge: Challenge = {
+      subtaskId,
+      startedAt: now,
+      targetMinutes,
+      workMsAtStart: await subtaskWorkMs(subtaskId, now),
+    }
     await setAppState('challenge', challenge)
     await logEvent('challenge_started', {
+      ts: now,
       projectId: subtask?.projectId,
       subtaskId,
       data: { targetMinutes, source },
@@ -251,17 +261,12 @@ export async function startChallenge(
 }
 
 /** Ends the active challenge without a win: cancelled by the user, or time ran out. */
-export async function endChallenge(outcome: 'cancelled' | 'timeUp', subtaskWorkMs: number): Promise<void> {
-  await db.transaction('rw', db.appState, db.events, db.subtasks, async () => {
+export async function endChallenge(outcome: 'cancelled' | 'timeUp'): Promise<void> {
+  await db.transaction('rw', [db.subtasks, ...SESSION_TABLES], async () => {
     const challenge = await getAppState('challenge')
     if (!challenge) return
     const subtask = await db.subtasks.get(challenge.subtaskId)
-    await deleteAppState('challenge')
-    await logEvent('challenge_ended', {
-      projectId: subtask?.projectId,
-      subtaskId: challenge.subtaskId,
-      data: { outcome, elapsedMs: challengeElapsedMs(challenge, subtaskWorkMs), targetMinutes: challenge.targetMinutes },
-    })
+    await endChallengeInTx(outcome, subtask?.projectId)
   })
 }
 

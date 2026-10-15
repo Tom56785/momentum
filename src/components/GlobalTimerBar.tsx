@@ -17,6 +17,8 @@ export function GlobalTimerBar() {
   const now = useNow()
 
   if (session.state === 'idle' || !project) return null
+  // Nothing left to work on (e.g. the project was just finished): no bar.
+  if (session.state === 'paused' && !session.subtaskId) return null
   const subtask = subtasks?.find((s) => s.id === session.subtaskId)
   const working = session.state === 'working'
   const onBreak = session.state === 'break'
