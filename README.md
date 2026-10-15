@@ -58,17 +58,19 @@ Momentum doesn't call any AI itself. You copy a prompt into the assistant you al
 4. Paste the assistant's reply into the import box, or drop a `.json` file onto it. A wrapping ```` ```json ```` code fence is fine.
 5. Check the preview (title, number of steps, total timebox) and press **Import**. If a project with the same ticket key already exists, choose **Replace subtasks** or **Import as new**.
 
-You land on the new project with **Start focus** highlighted. See [`schema/example-import.json`](schema/example-import.json) for a complete example, or click **Try the example** in the import dialog.
+You land on the new project with **Start focus** highlighted.
+
+The prompt can be edited in **Settings → AI import prompt** (it's stored with your data and included in backups). `{{SCHEMA}}` in it is replaced with the schema. If the browser blocks clipboard access, use **View** in the import dialog to copy it by hand. See [`schema/example-import.json`](schema/example-import.json) for a complete example, or click **Try the example** in the import dialog.
 
 Problems are listed with their path, for example `projects[0].subtasks[2].title is empty`.
 
 ## Using it
 
 - **Overview**: active projects with progress, the next step and your last breadcrumb. Arrow keys move between cards; `Enter` opens one, `F` starts focus.
-- **Project**: edit every field in place (it autosaves), add steps with `Enter`, drag steps or use `Alt+↑/↓` to reorder, and open a step to set its phase or timebox.
-- **Focus**: one step at a time. `Space` starts or pauses work, `Ctrl/Cmd+Enter` completes the step and moves on, `B` takes a break, `P` parks a stray thought, `C` starts a challenge, `T` reveals time, `N` jumps to notes, `F` toggles fullscreen, and `Esc` exits with a note to your future self.
+- **Project**: edit every field in place (it autosaves), add steps with `Enter`, drag steps or use `Alt+↑/↓` to reorder (or **Move up/down** in a step's panel on touch screens), and open a step to set its phase or timebox. The ▶ on a step starts focus on that step. **Export JSON** downloads the project in the import format, to re-import or share.
+- **Focus**: one step at a time. `Space` starts or pauses work, `Ctrl/Cmd+Enter` completes the step and moves on (with **Undo**, or `Ctrl/Cmd+Z`, for a few seconds), `E` edits the step's title and timebox, `B` takes a break, `P` parks a stray thought, `C` starts a challenge, `T` reveals time, `N` jumps to notes, `F` toggles fullscreen, and `Esc` exits with a note to your future self. Click the "Step 2 of 6" label to jump to any step still to do.
 - **Parking lot**: everything you parked, grouped by project. Expand an item to add detail, link it to a project, turn it into a step or a project, or mark it done (`S` and `D` work on the selected item).
-- **Settings**: break interval, break length and snooze; timebox prompt threshold; display, sound and notifications; storage status, backup export and restore.
+- **Settings**: break interval, break length and snooze; timebox prompt threshold; display, sound and notifications; the AI import prompt (editable, with Reset to default); storage status, backup export and restore.
 
 Press `?` anywhere to see every shortcut.
 

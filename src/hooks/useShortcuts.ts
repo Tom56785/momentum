@@ -17,10 +17,11 @@ function isActivatable(el: EventTarget | null): boolean {
   return el.closest('button, a[href], summary, input, [role="button"], [role="menuitem"], [role="checkbox"]') !== null
 }
 
-/** Normalises a key event to names like "Space", "Mod+Enter", "Escape", "?", "b", "ArrowUp". */
+/** Normalises a key event to names like "Space", "Mod+Enter", "Mod+z", "Escape", "?", "b", "ArrowUp". */
 export function keyName(e: KeyboardEvent): string | undefined {
   const mod = e.ctrlKey || e.metaKey
   if (e.key === 'Enter' && mod) return 'Mod+Enter'
+  if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') return 'Mod+z'
   if (mod || e.altKey) return undefined
   if (e.key === ' ' || e.key === 'Spacebar') return 'Space'
   if (e.key.length === 1) return e.key === '?' ? '?' : e.key.toLowerCase()

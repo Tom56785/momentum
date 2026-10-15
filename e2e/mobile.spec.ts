@@ -55,3 +55,20 @@ test('the parking box sits near the top, clear of the keyboard, with even chip p
     })
   expect(Math.abs(padding.left - padding.right)).toBeLessThanOrEqual(1)
 })
+
+test('the step list and step editor fit on a phone', async ({ page }) => {
+  await focusOnExample(page)
+  await page.getByRole('button', { name: /^step 1 of 6/i }).tap()
+  const menu = page.getByRole('menu', { name: 'Steps' })
+  await expect(menu).toBeVisible()
+  const box = (await menu.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width)
+  await expectNoSidewaysScroll(page)
+  await menu.getByRole('menuitem', { name: /Write tests/ }).tap()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Write tests for retried webhooks')
+
+  await page.getByRole('button', { name: 'Edit this step (E)' }).tap()
+  await expect(page.getByRole('textbox', { name: 'Step title' })).toBeVisible()
+  await expectNoSidewaysScroll(page)
+})

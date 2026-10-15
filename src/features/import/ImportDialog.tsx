@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Button } from '../../components/Button'
 import { Dialog, DialogActions } from '../../components/Dialog'
 import { Icon } from '../../components/Icon'
 import { showToast } from '../../components/toast'
 import type { Project } from '../../db/types'
+import { useSettings } from '../../hooks/useData'
 import { findDuplicates, importProjects, type DuplicateChoice } from './importProjects'
 import { buildAiPrompt } from './importSchema'
 import styles from './ImportDialog.module.css'
@@ -23,6 +25,10 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
   const [choices, setChoices] = useState<Map<number, DuplicateChoice>>(new Map())
   const [dragOver, setDragOver] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [showPrompt, setShowPrompt] = useState(false)
+  const settings = useSettings()
+  // The user's prompt from Settings, or the built-in one.
+  const prompt = buildAiPrompt(settings.aiPromptTemplate)
   // Latest text, so a slow duplicate lookup for older text can't overwrite newer results.
   const latestText = useRef('')
 
@@ -70,10 +76,11 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
 
   const copyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(buildAiPrompt())
+      await navigator.clipboard.writeText(prompt)
       showToast({ text: 'AI prompt copied — paste it with your ticket', tone: 'success' })
     } catch {
-      showToast({ text: 'Copy was blocked by the browser' })
+      setShowPrompt(true)
+      showToast({ text: 'Copy was blocked — the prompt is shown below to copy by hand', duration: 4000 })
     }
   }
 
@@ -87,10 +94,30 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
         <p>
           Copy the prompt, paste it into your AI assistant with the ticket, then paste the JSON it returns below.
         </p>
-        <Button size="sm" icon="copy" onClick={() => void copyPrompt()}>
-          Copy AI prompt
-        </Button>
+        <div className={styles.promptButtons}>
+          <Button size="sm" variant="ghost" aria-expanded={showPrompt} onClick={() => setShowPrompt(!showPrompt)}>
+            {showPrompt ? 'Hide' : 'View'}
+          </Button>
+          <Button size="sm" icon="copy" onClick={() => void copyPrompt()}>
+            Copy AI prompt
+          </Button>
+        </div>
       </div>
+      {showPrompt && (
+        <div className={styles.promptView}>
+          <textarea
+            className={['textarea', styles.promptText].join(' ')}
+            aria-label="AI prompt"
+            value={prompt}
+            readOnly
+            rows={10}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <Link to="/settings" className={styles.promptEdit} onClick={close}>
+            Edit the prompt in Settings
+          </Link>
+        </div>
+      )}
 
       <div
         className={[styles.drop, dragOver && styles.dragOver].filter(Boolean).join(' ')}

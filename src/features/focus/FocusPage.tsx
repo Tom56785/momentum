@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Button, IconButton } from '../../components/Button'
 import { celebrateBig, celebrateEarly, celebrateSmall, reducedMotion } from '../../components/celebrate'
 import { HintBar, type Hint } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
-import { showToast } from '../../components/toast'
-import { completeSubtask, endChallenge, enterFocus, startChallenge, type CompleteResult } from '../../db/actions'
+import { dismissToast, showToast } from '../../components/toast'
+import {
+  completeSubtask,
+  endChallenge,
+  enterFocus,
+  startChallenge,
+  undoCompletion,
+  type CompleteResult,
+} from '../../db/actions'
 import { dispatch } from '../../db/session'
 import { logEvent } from '../../db/store'
 import {
@@ -32,6 +39,8 @@ import { ExitDialog } from './ExitDialog'
 import styles from './FocusPage.module.css'
 import { NotesArea } from './NotesArea'
 import { ProjectComplete } from './ProjectComplete'
+import { StepEditor } from './StepEditor'
+import { StepMenu } from './StepMenu'
 import { TimeRow } from './TimeRow'
 import { useFullscreen } from './useFullscreen'
 
@@ -46,10 +55,17 @@ interface Celebration {
   early: boolean
 }
 
+/** How long Undo stays available after completing a step. */
+const UNDO_MS = 6000
+
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const shortTitle = (title: string) => (title.length > 40 ? `${title.slice(0, 39)}…` : title)
 
 export function FocusPage() {
   const { projectId } = useParams()
+  const [searchParams] = useSearchParams()
+  const requestedStep = searchParams.get('step') ?? undefined
   const navigate = useNavigate()
   const project = useProject(projectId)
   const subtasks = useSubtasks(projectId)
@@ -69,21 +85,40 @@ export function FocusPage() {
   const [completed, setCompleted] = useState<CompleteResult | null>(null)
   const [justCompleted, setJustCompleted] = useState(0)
   const [celebration, setCelebration] = useState<Celebration | null>(null)
+  const [stepMenuOpen, setStepMenuOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  // The latest completion that can still be undone, with its toast. A ref, not state, so
+  // Ctrl+Z pressed the instant after Ctrl+Enter already sees it.
+  const undoable = useRef<{ completion: Promise<CompleteResult>; toastId: number } | null>(null)
+  const undone = useRef<Promise<CompleteResult> | null>(null)
+  const stepLabelRef = useRef<HTMLButtonElement>(null)
+
+  // Undo belongs to the focus screen: don't leave its toast behind on other pages.
+  useEffect(
+    () => () => {
+      if (undoable.current) dismissToast(undoable.current.toastId)
+    },
+    [],
+  )
   const completeRef = useRef<HTMLButtonElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   const startRef = useRef<HTMLButtonElement>(null)
 
-  // Point the session at this project on entry. Never starts the timer.
+  // Point the session at this project (and a requested step, from "Focus on this step")
+  // on entry. Never starts the timer. The ?step= is then dropped, so a reload doesn't
+  // jump back to it.
   useEffect(() => {
     if (!projectId) return
     let cancelled = false
-    void enterFocus(projectId).then(() => {
-      if (!cancelled) setEntered(true)
+    void enterFocus(projectId, requestedStep).then(() => {
+      if (cancelled) return
+      setEntered(true)
+      if (requestedStep) navigate(`/focus/${projectId}`, { replace: true })
     })
     return () => {
       cancelled = true
     }
-  }, [projectId])
+  }, [projectId, requestedStep, navigate])
 
   // Show the breadcrumb once on entry, if there is one.
   const hasBreadcrumb = !!project?.breadcrumb
@@ -164,15 +199,29 @@ export function FocusPage() {
     setJustCompleted((n) => n + 1)
     // Keep Space meaning start/stop rather than "complete again".
     startRef.current?.focus()
+    const completion = completeSubtask(subtask.id, 'focus')
+    const toastId = showToast({
+      text: `Completed “${shortTitle(subtask.title)}”`,
+      duration: UNDO_MS,
+      action: { label: 'Undo', run: () => void undo(completion) },
+    })
+    undoable.current = { completion, toastId }
+    setTimeout(() => {
+      if (undoable.current?.completion === completion) undoable.current = null
+    }, UNDO_MS)
     let result: CompleteResult
     try {
-      ;[result] = await Promise.all([completeSubtask(subtask.id, 'focus'), pause(reducedMotion() ? 500 : CELEBRATION_MS)])
+      ;[result] = await Promise.all([completion, pause(reducedMotion() ? 500 : CELEBRATION_MS)])
     } catch {
+      dismissToast(toastId)
+      if (undoable.current?.completion === completion) undoable.current = null
       showToast({ text: "That step didn't save. Try again?", duration: 4000 })
       return
     } finally {
       setCelebration(null)
     }
+    // Undone during the celebration moment: nothing more to celebrate.
+    if (undone.current === completion) return
     if (result.challenge?.outcome === 'beat') {
       celebrateBig()
       showToast({
@@ -187,6 +236,27 @@ export function FocusPage() {
     // ProjectComplete fires the confetti itself, above its dialog's backdrop.
     if (result.projectCompleted) setCompleted(result)
     setTimeboxPromptFor(null)
+  }
+
+  /** Puts a just-completed step back: to-do again, current again, project reopened. */
+  const undo = async (completion: Promise<CompleteResult>) => {
+    if (undone.current === completion) return
+    undone.current = completion
+    if (undoable.current?.completion === completion) {
+      dismissToast(undoable.current.toastId)
+      undoable.current = null
+    }
+    let result: CompleteResult
+    try {
+      result = await completion
+    } catch {
+      return
+    }
+    await undoCompletion(result)
+    setCelebration(null)
+    setCompleted(null)
+    setJustCompleted((n) => n + 1)
+    showToast({ text: 'Step back on your list', duration: 2000 })
   }
 
   const switchTo = async (id: string | undefined) => {
@@ -214,7 +284,7 @@ export function FocusPage() {
     if (show) void logEvent('time_revealed', { projectId, subtaskId: subtask?.id, data: { what: activeChallenge ? 'challenge' : 'work' } })
   }
 
-  const busy = exitOpen || parkOpen || !!completed
+  const busy = exitOpen || parkOpen || stepMenuOpen || !!completed
   // What the card shows: the finished step while it celebrates, otherwise the current one.
   const shown = celebration?.subtask ?? subtask
   useShortcuts(
@@ -229,6 +299,12 @@ export function FocusPage() {
       t: toggleAllTime,
       n: () => notesRef.current?.focus(),
       f: () => fullscreen.toggle(),
+      e: () => {
+        if (subtask && !celebration && !onBreak) setEditing(true)
+      },
+      'Mod+z': () => {
+        if (undoable.current) void undo(undoable.current.completion)
+      },
       Escape: () => {
         if (challengeOpen) setChallengeOpen(false)
         else setExitOpen(true)
@@ -238,7 +314,16 @@ export function FocusPage() {
     { spaceOverridesButtons: true },
   )
   // Once the project is complete the page is a celebration; Esc heads back to the overview.
-  useShortcuts({ Escape: () => navigate('/') }, !!completed && !exitOpen && !parkOpen)
+  // Undo is still possible for a few seconds.
+  useShortcuts(
+    {
+      Escape: () => navigate('/'),
+      'Mod+z': () => {
+        if (undoable.current) void undo(undoable.current.completion)
+      },
+    },
+    !!completed && !exitOpen && !parkOpen,
+  )
 
   const hints: Hint[] = completed
     ? [['Enter', 'Back to overview']]
@@ -403,16 +488,62 @@ export function FocusPage() {
                   activeChallenge && !celebration && styles.challenge,
                   celebration && styles.celebrating,
                   celebration?.early && styles.celebratingEarly,
+                  stepMenuOpen && styles.cardRaised,
                 ]
                   .filter(Boolean)
                   .join(' ')}
                 aria-live="polite"
               >
-                <span className={styles.stepLabel}>
-                  Step {(celebration ? celebration.index : chain.findIndex((s) => s.id === shown.id)) + 1} of {total}
-                  {shown.phase && <> · {shown.phase}</>}
-                </span>
-                <h1 className={styles.taskTitle}>{shown.title}</h1>
+                <div className={styles.stepLabelWrap}>
+                  <button
+                    ref={stepLabelRef}
+                    type="button"
+                    className={styles.stepLabel}
+                    aria-haspopup="menu"
+                    aria-expanded={stepMenuOpen}
+                    disabled={!!celebration}
+                    title="Jump to another step"
+                    onClick={() => setStepMenuOpen(!stepMenuOpen)}
+                  >
+                    Step {(celebration ? celebration.index : chain.findIndex((s) => s.id === shown.id)) + 1} of {total}
+                    {shown.phase && <> · {shown.phase}</>}
+                    <Icon name="chevronDown" size={12} />
+                  </button>
+                  {stepMenuOpen && (
+                    <StepMenu
+                      steps={chain}
+                      currentId={shown.id}
+                      onPick={(id) => {
+                        setStepMenuOpen(false)
+                        void switchTo(id)
+                      }}
+                      onClose={() => {
+                        setStepMenuOpen(false)
+                        stepLabelRef.current?.focus()
+                      }}
+                    />
+                  )}
+                </div>
+                {!celebration && !editing && (
+                  <IconButton
+                    small
+                    icon="pencil"
+                    label="Edit this step (E)"
+                    className={styles.editStep}
+                    onClick={() => setEditing(true)}
+                  />
+                )}
+                {editing && !celebration && subtask ? (
+                  <StepEditor
+                    subtask={subtask}
+                    onDone={() => {
+                      setEditing(false)
+                      startRef.current?.focus()
+                    }}
+                  />
+                ) : (
+                  <h1 className={styles.taskTitle}>{shown.title}</h1>
+                )}
                 {shown.description && <p className={styles.description}>{shown.description}</p>}
                 {celebration ? (
                   <div className={styles.doneRow}>

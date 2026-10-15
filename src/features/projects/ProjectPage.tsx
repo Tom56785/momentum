@@ -15,6 +15,8 @@ import { useProject, useSubtasks } from '../../hooks/useData'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import styles from './ProjectPage.module.css'
 import { SubtaskList } from './SubtaskList'
+import { showToast } from '../../components/toast'
+import { downloadJson, exportFileName, projectToImportDoc } from '../import/exportProject'
 
 export function ProjectPage() {
   const { id } = useParams()
@@ -48,6 +50,14 @@ export function ProjectPage() {
   const saveTitle = (value: string) => {
     if (!value.trim()) return false
     void updateProject(project.id, { title: value.trim() })
+  }
+
+  // Re-importable file in the import format (e.g. to re-import after an AI rewrite, or share).
+  const exportJson = () => {
+    const doc = projectToImportDoc(project, subtasks)
+    if (!doc) return
+    downloadJson(exportFileName(project), doc)
+    showToast({ text: 'Project exported', tone: 'success' })
   }
 
   const remove = async () => {
@@ -148,6 +158,16 @@ export function ProjectPage() {
                 Archive
               </Button>
             )}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="download"
+              disabled={total === 0}
+              title={total === 0 ? 'Add a step first' : 'Download this project in the import format'}
+              onClick={exportJson}
+            >
+              Export JSON
+            </Button>
             <Button size="sm" variant="ghost" icon="trash" onClick={() => void remove()}>
               Delete
             </Button>

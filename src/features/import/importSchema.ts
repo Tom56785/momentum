@@ -50,6 +50,9 @@ Schema:
 Ticket:
 {{PASTE TICKET HERE}}`
 
-export function buildAiPrompt(): string {
-  return AI_PROMPT_TEMPLATE.replace('{{SCHEMA}}', IMPORT_JSON_SCHEMA_TEXT.trim())
+export const SCHEMA_PLACEHOLDER = '{{SCHEMA}}'
+
+/** The prompt to copy: the user's template (or the default) with the import schema filled in. */
+export function buildAiPrompt(template: string = AI_PROMPT_TEMPLATE): string {
+  return template.split(SCHEMA_PLACEHOLDER).join(IMPORT_JSON_SCHEMA_TEXT.trim())
 }

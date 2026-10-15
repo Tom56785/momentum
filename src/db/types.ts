@@ -101,6 +101,8 @@ export interface Settings {
   soundEnabled: boolean
   systemNotifications: boolean
   lastBackupAt?: number
+  /** Custom AI import prompt; undefined means the built-in default. */
+  aiPromptTemplate?: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {

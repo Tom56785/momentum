@@ -45,7 +45,7 @@ async function markProjectComplete(projectId: string, now: number): Promise<numb
  */
 export async function reopenProjectIfCompleted(
   projectId: string,
-  reason: 'subtaskAdded' | 'subtaskReopened' | 'reimported' | 'restored',
+  reason: 'subtaskAdded' | 'subtaskReopened' | 'undone' | 'reimported' | 'restored',
   now = Date.now(),
 ): Promise<void> {
   const project = await db.projects.get(projectId)
@@ -180,7 +180,13 @@ export async function moveSubtask(id: string, toIndex: number): Promise<void> {
 }
 
 export interface CompleteResult {
+  /** The step that was completed (undefined if nothing changed). */
+  subtaskId?: string
   nextSubtaskId?: string
+  /** Work was running and stopped because nothing was left (so undo can resume it). */
+  stoppedWork?: boolean
+  /** The personal best this completion replaced, so undo can restore it (null: there was none). */
+  personalBestBefore?: number | null
   /** Time to spare on the step's timebox, when it was finished early. */
   earlyByMs?: number
   projectCompleted: boolean
@@ -201,6 +207,7 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
     const next = nextTodo(chain, id)
 
     const session = await getSession()
+    const stoppedWork = session.subtaskId === id && session.state === 'working' && !next
     if (session.subtaskId === id) {
       await applyAction({ type: 'complete', nextSubtaskId: next?.id }, via, now)
     }
@@ -215,6 +222,8 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
     })
 
     const result: CompleteResult = {
+      subtaskId: id,
+      stoppedWork,
       nextSubtaskId: next?.id,
       earlyByMs: earlyFinishMs(subtask.timeboxMinutes, workOnSubtask),
       projectCompleted: false,
@@ -230,6 +239,7 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
         const bests = (await getAppState('personalBests')) ?? {}
         if (bests[phase] === undefined || elapsedMs < (bests[phase] ?? Infinity)) {
           newPersonalBest = true
+          result.personalBestBefore = bests[phase] ?? null
           await setAppState('personalBests', { ...bests, [phase]: elapsedMs })
         }
       }
@@ -260,25 +270,69 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
 export async function reopenSubtask(id: string): Promise<void> {
   await db.transaction('rw', db.subtasks, db.projects, db.events, async () => {
     const subtask = await db.subtasks.get(id)
+    if (subtask?.status === 'done') await reopenSubtaskInTx(subtask, 'subtaskReopened', Date.now())
+  })
+}
+
+/** Must run inside a transaction with subtasks, projects and events. */
+async function reopenSubtaskInTx(subtask: Subtask, reason: 'subtaskReopened' | 'undone', now: number): Promise<void> {
+  await db.subtasks.update(subtask.id, { status: 'todo', completedAt: undefined })
+  await logEvent('subtask_reopened', { ts: now, projectId: subtask.projectId, subtaskId: subtask.id, data: { reason } })
+  await reopenProjectIfCompleted(subtask.projectId, reason, now)
+}
+
+/**
+ * Undoes a completion from the focus screen: the step is to-do again (logged as a reopen,
+ * so reports skip the completion), a personal best it set is restored, a project it
+ * finished is reopened, and the session goes back to the step. If finishing the project
+ * had stopped the timer, work resumes on the step.
+ */
+export async function undoCompletion(result: CompleteResult): Promise<void> {
+  const id = result.subtaskId
+  if (!id) return
+  await db.transaction('rw', [db.subtasks, db.projects, ...SESSION_TABLES], async () => {
+    const subtask = await db.subtasks.get(id)
     if (!subtask || subtask.status !== 'done') return
     const now = Date.now()
-    await db.subtasks.update(id, { status: 'todo', completedAt: undefined })
-    await logEvent('subtask_reopened', { ts: now, projectId: subtask.projectId, subtaskId: id })
-    await reopenProjectIfCompleted(subtask.projectId, 'subtaskReopened', now)
+    await reopenSubtaskInTx(subtask, 'undone', now)
+
+    if (result.challenge?.newPersonalBest && result.personalBestBefore !== undefined) {
+      const bests = { ...((await getAppState('personalBests')) ?? {}) }
+      if (result.personalBestBefore === null) delete bests[result.challenge.phase]
+      else bests[result.challenge.phase] = result.personalBestBefore
+      await setAppState('personalBests', bests)
+    }
+
+    const session = await getSession()
+    if (session.projectId !== subtask.projectId) return
+    if (session.subtaskId !== id) await applyAction({ type: 'switch', subtaskId: id }, 'focus', now)
+    if (result.stoppedWork && (await getSession()).state === 'paused') {
+      await applyAction({ type: 'start', projectId: subtask.projectId, subtaskId: id }, 'focus', now)
+    }
   })
 }
 
 // ---------------------------------------------------------------- focus
 
-/** Points the session at a project when entering focus, choosing its next incomplete subtask. */
-export async function enterFocus(projectId: string): Promise<void> {
+/**
+ * Points the session at a project when entering focus. Uses `preferredSubtaskId` if it's a
+ * step still to do (switching to it even if work is running on another step of this
+ * project), otherwise the step already in progress, otherwise the next one to do.
+ * Never starts the timer.
+ */
+export async function enterFocus(projectId: string, preferredSubtaskId?: string): Promise<void> {
   await db.transaction('rw', [db.subtasks, db.projects, ...SESSION_TABLES], async () => {
     const session = await getSession()
     const chain = await projectSubtasks(projectId)
-    const current = session.projectId === projectId ? chain.find((s) => s.id === session.subtaskId) : undefined
-    const target = current?.status === 'todo' ? current : nextTodo(chain)
-    await applyAction({ type: 'target', projectId, subtaskId: target?.id })
-    await logEvent('focus_entered', { projectId, subtaskId: target?.id })
+    const preferred = chain.find((s) => s.id === preferredSubtaskId && s.status === 'todo')
+    if (preferred && session.projectId === projectId) {
+      await applyAction({ type: 'switch', subtaskId: preferred.id })
+    } else {
+      const current = session.projectId === projectId ? chain.find((s) => s.id === session.subtaskId) : undefined
+      const target = preferred ?? (current?.status === 'todo' ? current : nextTodo(chain))
+      await applyAction({ type: 'target', projectId, subtaskId: target?.id })
+    }
+    await logEvent('focus_entered', { projectId, subtaskId: (await getSession()).subtaskId })
   })
 }
 

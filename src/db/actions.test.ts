@@ -19,12 +19,13 @@ import {
   projectSubtasks,
   reopenSubtask,
   startChallenge,
+  undoCompletion,
 } from './actions'
 import { db } from './db'
 import { todaySummary, undoneCompletions } from '../domain/stats'
 import { segmentsOverlapping } from './reports'
 import { dispatch } from './session'
-import { getAppState, getSession } from './store'
+import { getAppState, getSession, getSettings, resetSetting, updateSettings } from './store'
 
 const T0 = new Date('2026-10-15T09:00:00').getTime()
 
@@ -377,5 +378,110 @@ describe('parking conversions are idempotent', () => {
     const itemId = await parkThought('New thing')
     await Promise.all([parkingItemToProject(itemId), parkingItemToProject(itemId)])
     expect(await db.projects.count()).toBe(1)
+  })
+})
+
+describe('undoing a completion', () => {
+  it('puts the step back and moves running work back onto it', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    vi.setSystemTime(T0 + 5 * MINUTE)
+    const result = await completeSubtask(ids[0])
+    expect((await getSession()).subtaskId).toBe(ids[1])
+    vi.setSystemTime(T0 + 5 * MINUTE + 3000)
+    await undoCompletion(result)
+    expect((await db.subtasks.get(ids[0]))?.status).toBe('todo')
+    expect(await getSession()).toMatchObject({ state: 'working', subtaskId: ids[0] })
+    expect(await openSegments()).toEqual([expect.objectContaining({ subtaskId: ids[0] })])
+    // Reports skip the undone completion.
+    const events = await db.events.toArray()
+    expect(todaySummary([], events, Date.now()).subtasksCompleted).toBe(0)
+  })
+
+  it('reopens a finished project and resumes the timer it stopped', async () => {
+    const { projectId, ids } = await setupProject(['only'])
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    const result = await completeSubtask(ids[0])
+    expect(result).toMatchObject({ projectCompleted: true, stoppedWork: true })
+    await undoCompletion(result)
+    expect((await db.projects.get(projectId))?.status).toBe('active')
+    expect(await getSession()).toMatchObject({ state: 'working', subtaskId: ids[0] })
+    const events = await db.events.toArray()
+    expect(todaySummary([], events, Date.now()).projectsCompleted).toBe(0)
+  })
+
+  it('leaves a paused session paused', async () => {
+    const { projectId, ids } = await setupProject()
+    await enterFocus(projectId)
+    const result = await completeSubtask(ids[0])
+    await undoCompletion(result)
+    expect(await getSession()).toMatchObject({ state: 'idle', subtaskId: ids[0] })
+    expect(await openSegments()).toHaveLength(0)
+  })
+
+  it('restores the personal best a challenge win replaced', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 15, 'manual')
+    vi.setSystemTime(T0 + 12 * MINUTE)
+    await completeSubtask(ids[0]) // sets the first best: 12 min
+    await startChallenge(ids[1], 15, 'manual')
+    vi.setSystemTime(T0 + 20 * MINUTE)
+    const faster = await completeSubtask(ids[1]) // 8 min: a new best
+    expect(await getAppState('personalBests')).toEqual({ implement: 8 * MINUTE })
+    await undoCompletion(faster)
+    expect(await getAppState('personalBests')).toEqual({ implement: 12 * MINUTE })
+  })
+
+  it('removes a first-ever personal best entirely', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await startChallenge(ids[0], 15, 'manual')
+    vi.setSystemTime(T0 + 5 * MINUTE)
+    const result = await completeSubtask(ids[0])
+    await undoCompletion(result)
+    expect(await getAppState('personalBests')).toEqual({})
+  })
+
+  it('does nothing if the step was already put back', async () => {
+    const { ids } = await setupProject()
+    const result = await completeSubtask(ids[0])
+    await undoCompletion(result)
+    await undoCompletion(result)
+    expect(await db.events.where('type').equals('subtask_reopened').count()).toBe(1)
+  })
+})
+
+describe('entering focus on a chosen step', () => {
+  it('targets the requested step without starting the timer', async () => {
+    const { projectId, ids } = await setupProject()
+    await enterFocus(projectId, ids[2])
+    expect(await getSession()).toMatchObject({ state: 'idle', projectId, subtaskId: ids[2] })
+  })
+
+  it('moves running work onto the requested step of the same project', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await enterFocus(projectId, ids[2])
+    expect(await getSession()).toMatchObject({ state: 'working', subtaskId: ids[2] })
+    expect(await openSegments()).toEqual([expect.objectContaining({ subtaskId: ids[2] })])
+  })
+
+  it('falls back to the next step to do if the requested one is done', async () => {
+    const { projectId, ids } = await setupProject()
+    await completeSubtask(ids[2])
+    await enterFocus(projectId, ids[2])
+    expect((await getSession()).subtaskId).toBe(ids[0])
+  })
+})
+
+describe('AI prompt template setting', () => {
+  it('is stored in the settings table and can be reset to the default', async () => {
+    expect((await getSettings()).aiPromptTemplate).toBeUndefined()
+    await updateSettings({ aiPromptTemplate: 'My prompt {{SCHEMA}}' })
+    expect((await getSettings()).aiPromptTemplate).toBe('My prompt {{SCHEMA}}')
+    await resetSetting('aiPromptTemplate')
+    expect((await getSettings()).aiPromptTemplate).toBeUndefined()
+    expect(await db.settings.get('aiPromptTemplate')).toBeUndefined()
   })
 })

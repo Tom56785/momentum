@@ -9,6 +9,7 @@ import { DAY } from '../../domain/time'
 import { useAppState, useSettings } from '../../hooks/useData'
 import { useNow } from '../../hooks/useNow'
 import { downloadBackup, parseBackup, restoreBackup, type Backup } from './backup'
+import { PromptSettings } from './PromptSettings'
 import styles from './SettingsPage.module.css'
 
 export function SettingsPage() {
@@ -91,6 +92,10 @@ export function SettingsPage() {
           checked={settings.systemNotifications}
           onChange={(v) => void toggleNotifications(v)}
         />
+      </Section>
+
+      <Section title="AI import prompt">
+        <PromptSettings template={settings.aiPromptTemplate} />
       </Section>
 
       <Section title="Your data">

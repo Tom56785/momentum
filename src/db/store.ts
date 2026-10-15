@@ -27,10 +27,13 @@ export async function getSession(): Promise<Session> {
   return (await getAppState('session')) ?? IDLE_SESSION
 }
 
+/** Settings without a default value: stored only when set. */
+const OPTIONAL_SETTINGS: readonly string[] = ['lastBackupAt', 'aiPromptTemplate'] satisfies (keyof Settings)[]
+
 export function settingsFromRows(rows: { key: string; value: unknown }[]): Settings {
   const s: Record<string, unknown> = { ...DEFAULT_SETTINGS }
   for (const row of rows) {
-    if (row.key in DEFAULT_SETTINGS || row.key === 'lastBackupAt') s[row.key] = row.value
+    if (row.key in DEFAULT_SETTINGS || OPTIONAL_SETTINGS.includes(row.key)) s[row.key] = row.value
   }
   return s as unknown as Settings
 }
@@ -41,6 +44,11 @@ export async function getSettings(): Promise<Settings> {
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   await db.settings.bulkPut(Object.entries(patch).map(([key, value]) => ({ key, value })))
+}
+
+/** Removes a stored setting, so its default applies again. */
+export async function resetSetting(key: keyof Settings): Promise<void> {
+  await db.settings.delete(key)
 }
 
 type EventFields = Omit<AppEvent, 'seq' | 'ts' | 'type'> & { ts?: number }

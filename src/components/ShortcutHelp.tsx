@@ -7,6 +7,8 @@ const GROUPS: { title: string; rows: [keys: string[], action: string][] }[] = [
     rows: [
       [['Space'], 'Start or stop work'],
       [['Ctrl/Cmd', 'Enter'], 'Complete current subtask'],
+      [['Ctrl/Cmd', 'Z'], 'Undo the step you just completed'],
+      [['E'], 'Edit the current step'],
       [['B'], 'Start or end break'],
       [['P'], 'Park a thought'],
       [['C'], 'Start challenge'],

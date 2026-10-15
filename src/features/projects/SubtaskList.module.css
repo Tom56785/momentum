@@ -147,6 +147,24 @@
   padding: 1px 8px;
 }
 
+/* "Focus on this step": quiet until the row is hovered or focused (always shown on touch). */
+.focusStep {
+  opacity: 0;
+  color: var(--accent);
+  transition: opacity var(--dur-fast);
+}
+
+.row:hover .focusStep,
+.row:focus-within .focusStep {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .focusStep {
+    opacity: 0.8;
+  }
+}
+
 .chevronOpen svg {
   transform: rotate(180deg);
 }

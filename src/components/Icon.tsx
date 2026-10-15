@@ -101,6 +101,7 @@ const PATHS = {
   ),
   sparkle: <path d="M12 3.5 13.8 10l6.7 2-6.7 2L12 20.5 10.2 14l-6.7-2 6.7-2L12 3.5Z" />,
   exit: <path d="M14 4.5h4.5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H14M10 8l-4 4 4 4M6 12h10" />,
+  pencil: <path d="M15.5 4.5l4 4L9 19H5v-4L15.5 4.5ZM13 7l4 4" />,
   undo: <path d="M8.5 5 4 9.5 8.5 14M4 9.5h10a5.5 5.5 0 0 1 0 11h-3" />,
 } as const
 

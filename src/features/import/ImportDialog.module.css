@@ -7,6 +7,31 @@
   color: var(--text-muted);
 }
 
+.promptButtons {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.promptView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.promptText {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+  max-height: 30vh;
+}
+
+.promptEdit {
+  font-size: var(--text-sm);
+  align-self: flex-end;
+}
+
 .drop {
   display: flex;
   flex-direction: column;

@@ -1,4 +1,5 @@
 import { useState, type RefObject } from 'react'
+import { useNavigate } from 'react-router'
 import { IconButton } from '../../components/Button'
 import { celebrateBig, celebrateEarly, celebrateSmall } from '../../components/celebrate'
 import { Icon } from '../../components/Icon'
@@ -109,6 +110,7 @@ interface RowProps {
 }
 
 function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, onDragStart, onDragEnd, onDragOverRow, onMove }: RowProps) {
+  const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
   // Titles can't be empty: returning false rejects the save and the field reverts.
   const [title, setTitle, flushTitle] = useAutosave(subtask.title, (t) => {
@@ -212,6 +214,16 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
         <div className={styles.meta}>
           {subtask.phase && <span className={styles.phase}>{subtask.phase}</span>}
           {subtask.timeboxMinutes && !expanded && <span className={styles.timebox}>{subtask.timeboxMinutes}m</span>}
+          {!isDone && (
+            <IconButton
+              small
+              icon="play"
+              label={`Focus on "${subtask.title}"`}
+              title="Focus on this step"
+              className={styles.focusStep}
+              onClick={() => navigate(`/focus/${subtask.projectId}?step=${subtask.id}`)}
+            />
+          )}
           <IconButton
             small
             icon="chevronDown"
