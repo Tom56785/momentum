@@ -6,42 +6,42 @@ Built with React 19, the React Compiler, Vite, TypeScript (strict), Dexie and Zo
 
 ## Run it
 
-Requires Node.js 20.19 or newer.
+Requires Node.js 20.19 or newer and [pnpm](https://pnpm.io) (the exact version is pinned in `package.json` under `packageManager`; install it with `npm install -g pnpm@12.8.2`, or run `corepack enable` to use the pinned version automatically).
 
 ```sh
-npm install
-npm run dev        # http://localhost:5173
+pnpm install
+pnpm dev           # http://localhost:5173
 ```
 
 Other scripts:
 
 | Script | What it does |
 | --- | --- |
-| `npm run build` | Type-checks and builds the static site into `dist/` (with the service worker and manifest) |
-| `npm run preview` | Serves `dist/` locally, so you can test install and offline |
-| `npm test` | Runs the unit and integration tests once (Vitest + fake-indexeddb) |
-| `npm run test:watch` | Tests in watch mode |
-| `npm run test:e2e` | Builds the app and runs the end-to-end tests in a real browser (Playwright) |
-| `npm run test:e2e:install` | One-time download of the Chromium build Playwright uses |
-| `npm run typecheck` | TypeScript only |
-| `npm run lint` | oxlint |
-| `npm run generate-icons` | Regenerates the PWA PNG icons from `public/favicon.svg` |
+| `pnpm build` | Type-checks and builds the static site into `dist/` (with the service worker and manifest) |
+| `pnpm preview` | Serves `dist/` locally, so you can test install and offline |
+| `pnpm test` | Runs the unit and integration tests once (Vitest + fake-indexeddb) |
+| `pnpm test:watch` | Tests in watch mode |
+| `pnpm test:e2e` | Builds the app and runs the end-to-end tests in a real browser (Playwright) |
+| `pnpm test:e2e:install` | One-time download of the Chromium build Playwright uses |
+| `pnpm typecheck` | TypeScript only |
+| `pnpm lint` | oxlint |
+| `pnpm generate-icons` | Regenerates the PWA PNG icons from `public/favicon.svg` |
 
 ### End-to-end tests
 
 `e2e/` holds Playwright tests that drive the production build (`vite preview` on port 4173, started automatically) in Chromium: import, project editing, the focus flow and celebrations, keyboard behaviour, breaks, challenges and timeboxes (with a controlled clock, so 25 minutes pass instantly), stale sessions, two tabs in sync, offline use, backup export/restore, and a 390px touch layout. Every test starts with an empty database.
 
-Run `npm run test:e2e:install` once, then `npm run test:e2e`. Add `--ui` for Playwright's interactive runner, or `--repeat-each=5` to check for flakiness. When a test fails, its trace is kept in `test-results/`; open it with `npx playwright show-trace <path>`.
+Run `pnpm test:e2e:install` once, then `pnpm test:e2e`. Add `--ui` for Playwright's interactive runner, or `--repeat-each=5` to check for flakiness. When a test fails, its trace is kept in `test-results/`; open it with `pnpm exec playwright show-trace <path>`.
 
 ## Deploy
 
-`npm run build` produces a fully static site in `dist/`. The app uses hash URLs (`/#/project/…`), so no rewrite rules are needed. Any static host works.
+`pnpm build` produces a fully static site in `dist/`. The app uses hash URLs (`/#/project/…`), so no rewrite rules are needed. Any static host works.
 
-**Cloudflare Pages:** create a project from this repo with build command `npm run build` and output directory `dist`. Or upload directly:
+**Cloudflare Pages:** create a project from this repo with build command `pnpm build` and output directory `dist` (Cloudflare picks up pnpm from the lockfile). Or upload directly:
 
 ```sh
-npm run build
-npx wrangler pages deploy dist
+pnpm build
+pnpm dlx wrangler pages deploy dist
 ```
 
 **Netlify, GitHub Pages, S3 or similar:** upload the contents of `dist/`. Serve over HTTPS (required for the service worker and install prompt). The app expects to live at the domain root. To host it under a sub-path, set `base` in `vite.config.ts` and update `start_url` and `scope` in the PWA manifest.
