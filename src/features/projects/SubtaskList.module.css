@@ -1,0 +1,209 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.row {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--dur-fast),
+    opacity var(--dur),
+    background-color var(--dur);
+}
+
+.row:hover,
+.row:focus-within {
+  border-color: var(--border-strong);
+}
+
+.dragging {
+  opacity: 0.4;
+}
+
+.dropBefore::before,
+.dropAfter::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.dropBefore::before {
+  top: -4px;
+}
+
+.dropAfter::after {
+  bottom: -4px;
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.grip {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  padding: 4px 2px;
+  cursor: grab;
+  border-radius: var(--radius-sm);
+  opacity: 0.5;
+  transition: opacity var(--dur-fast);
+}
+
+.row:hover .grip,
+.grip:focus-visible {
+  opacity: 1;
+}
+
+.check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: transparent;
+  color: #fff;
+  padding: 0;
+  transition:
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-spring);
+}
+
+.check:hover {
+  border-color: var(--success);
+}
+
+.done .check {
+  background: var(--success);
+  border-color: var(--success);
+  animation: pop var(--dur-slow) var(--ease-spring);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  transition: color var(--dur);
+}
+
+.title:hover {
+  border-color: var(--border);
+}
+
+.title:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.done .title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.phase,
+.timebox {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.chevronOpen svg {
+  transform: rotate(180deg);
+}
+
+.expanded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3) 64px;
+  animation: rise-in var(--dur) var(--ease-out);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.notes p {
+  white-space: pre-wrap;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-faint);
+}
+
+.addRow:focus-within {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.addInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: var(--space-2) 0;
+}
+
+.addInput:focus {
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .expanded {
+    padding-left: var(--space-3);
+  }
+}

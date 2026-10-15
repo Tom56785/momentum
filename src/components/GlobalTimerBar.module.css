@@ -1,0 +1,126 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: var(--timer-bar-height);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+  animation: rise-in var(--dur) var(--ease-out);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: var(--space-1) var(--space-5);
+  min-height: var(--timer-bar-height);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.working .dot {
+  background: var(--success);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.onBreak .dot {
+  background: var(--glow-b);
+}
+
+.what {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.project {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30%;
+}
+
+.subtask {
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 3px var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 550;
+  transition: background-color var(--dur-fast);
+}
+
+.toggle:hover:not(:disabled) {
+  background: var(--bg-sunken);
+}
+
+.working .toggle {
+  border-color: color-mix(in srgb, var(--success) 50%, var(--border));
+}
+
+.returnLink {
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.8);
+  }
+}
+
+@media (max-width: 600px) {
+  .inner {
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .project {
+    display: none;
+  }
+}

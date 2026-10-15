@@ -1,0 +1,165 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { useRef } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { AutoField } from '../../components/AutoField'
+import { Button } from '../../components/Button'
+import { HintBar } from '../../components/HintBar'
+import { Icon } from '../../components/Icon'
+import { NotFound } from '../../components/NotFound'
+import { ProgressBar } from '../../components/ProgressBar'
+import { deleteProject, setProjectStatus, updateProject } from '../../db/actions'
+import { db } from '../../db/db'
+import { firstTodo, progress } from '../../domain/rules'
+import { formatDuration, workMs } from '../../domain/time'
+import { useProject, useSubtasks } from '../../hooks/useData'
+import { useShortcuts } from '../../hooks/useShortcuts'
+import styles from './ProjectPage.module.css'
+import { SubtaskList } from './SubtaskList'
+
+export function ProjectPage() {
+  const { id } = useParams()
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const project = useProject(id)
+  const subtasks = useSubtasks(id)
+  const addInputRef = useRef<HTMLInputElement>(null)
+  const totalWorkMs = useLiveQuery(
+    async () => (id ? workMs(await db.segments.where('projectId').equals(id).toArray(), Date.now()) : 0),
+    [id, project?.status],
+    0,
+  )
+
+  const next = subtasks ? firstTodo(subtasks) : undefined
+  const startFocus = () => {
+    if (project && next) navigate(`/focus/${project.id}`)
+  }
+
+  useShortcuts({
+    f: startFocus,
+    Enter: () => addInputRef.current?.focus(),
+  })
+
+  if (project === undefined || subtasks === undefined) return null
+  if (project === null) return <NotFound what="project" />
+
+  const { done, total } = progress(subtasks)
+  const save = (field: keyof typeof project) => (value: string) => updateProject(project.id, { [field]: value.trim() || undefined })
+  const saveTitle = (value: string) => {
+    if (value.trim()) void updateProject(project.id, { title: value.trim() })
+  }
+
+  const remove = async () => {
+    if (!window.confirm(`Delete "${project.title}" and its ${total} steps? Time already logged stays in your history.`)) return
+    await deleteProject(project.id)
+    navigate('/')
+  }
+
+  return (
+    // Keyed so drafts in autosaved fields never leak between projects.
+    <div className={styles.page} key={project.id}>
+      <Link to="/" className={styles.back}>
+        <Icon name="arrowLeft" size={16} /> Overview
+      </Link>
+
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <AutoField
+            label="Project title"
+            hideLabel
+            value={project.title}
+            onSave={saveTitle}
+            className={styles.titleField}
+          />
+          {project.status === 'active' && (
+            <Button
+              variant="primary"
+              size="lg"
+              icon="play"
+              highlight={params.get('new') === '1' && !!next}
+              disabled={!next}
+              onClick={startFocus}
+            >
+              Start focus
+            </Button>
+          )}
+        </div>
+        <div className={styles.progressRow}>
+          <ProgressBar done={done} total={total} />
+          <span className={styles.count}>
+            {done} of {total} done
+          </span>
+        </div>
+      </header>
+
+      {project.status === 'done' && (
+        <section className={styles.achievement}>
+          <Icon name="sparkle" size={22} />
+          <div>
+            <h2>Project complete</h2>
+            <p>
+              {total} {total === 1 ? 'step' : 'steps'} finished
+              {totalWorkMs > 0 && <> in {formatDuration(totalWorkMs)} of focused work</>}. That's real progress.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {project.breadcrumb && (
+        <p className={styles.breadcrumb}>
+          <Icon name="note" size={16} />
+          <span>{project.breadcrumb.text}</span>
+        </p>
+      )}
+
+      <div className={styles.columns}>
+        <section className={styles.chain} aria-label="Steps">
+          <h2 className={styles.sectionTitle}>Steps</h2>
+          <SubtaskList projectId={project.id} subtasks={subtasks} addInputRef={addInputRef} />
+        </section>
+
+        <aside className={styles.details}>
+          <h2 className={styles.sectionTitle}>Details</h2>
+          <div className={styles.metaRow}>
+            <AutoField label="Ticket key" value={project.externalKey} onSave={save('externalKey')} placeholder="ABC-123" />
+            <AutoField label="Target date" type="date" value={project.targetDate} onSave={save('targetDate')} />
+          </div>
+          <div className={styles.urlRow}>
+            <AutoField label="Link" type="url" value={project.url} onSave={save('url')} placeholder="https://" />
+            {project.url && (
+              <a href={project.url} target="_blank" rel="noreferrer" className={styles.openLink} aria-label="Open link">
+                <Icon name="link" size={16} />
+              </a>
+            )}
+          </div>
+          <AutoField label="Summary" multiline value={project.summary} onSave={save('summary')} placeholder="The problem in a sentence or two" />
+          <AutoField label="Problem" multiline value={project.problem} onSave={save('problem')} placeholder="What is wrong, from the user's side" />
+          <AutoField label="Cause" multiline value={project.cause} onSave={save('cause')} placeholder="Why it happens, technically" />
+          <AutoField label="Solution" multiline value={project.solution} onSave={save('solution')} placeholder="The proposed fix" />
+
+          <div className={styles.dangerZone}>
+            {project.status === 'archived' ? (
+              <Button size="sm" variant="ghost" icon="undo" onClick={() => void setProjectStatus(project.id, 'active')}>
+                Restore
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" icon="inbox" onClick={() => void setProjectStatus(project.id, 'archived')}>
+                Archive
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" icon="trash" onClick={() => void remove()}>
+              Delete
+            </Button>
+          </div>
+        </aside>
+      </div>
+
+      <HintBar
+        hints={[
+          ...(next ? ([['F', 'Start focus']] as [string, string][]) : []),
+          ['Enter', 'Add subtask'],
+          ['?', 'All shortcuts'],
+        ]}
+      />
+    </div>
+  )
+}

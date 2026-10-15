@@ -1,0 +1,47 @@
+.track {
+  position: relative;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.sm {
+  height: 5px;
+}
+
+.md {
+  height: 8px;
+}
+
+.lg {
+  height: 10px;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--glow-a), var(--success));
+  transition: transform var(--dur-slow) var(--ease-spring);
+}
+
+.complete {
+  background: var(--success);
+}
+
+.fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 35%), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2.4s var(--ease-out) 1;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}

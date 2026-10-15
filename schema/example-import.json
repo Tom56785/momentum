@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "projects": [{
+    "title": "Fix duplicate emails on order confirmation",
+    "externalKey": "SHOP-482",
+    "summary": "Some customers receive two confirmation emails per order.",
+    "cause": "The payment webhook is retried and the handler is not idempotent.",
+    "solution": "Store processed webhook IDs and skip duplicates.",
+    "targetDate": "2026-10-22",
+    "subtasks": [
+      { "title": "Read the ticket and AI summary", "phase": "understand", "timeboxMinutes": 5 },
+      { "title": "Reproduce the duplicate email locally", "phase": "investigate", "timeboxMinutes": 30 },
+      { "title": "Add idempotency check to webhook handler", "phase": "implement", "timeboxMinutes": 45 },
+      { "title": "Write tests for retried webhooks", "phase": "test", "timeboxMinutes": 30 },
+      { "title": "Open PR and request review", "phase": "review", "timeboxMinutes": 15 },
+      { "title": "Deploy and confirm in monitoring", "phase": "deploy" }
+    ]
+  }]
+}

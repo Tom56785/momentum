@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "momentum-import-v1",
+  "type": "object",
+  "required": ["schemaVersion", "projects"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "projects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["title", "subtasks"],
+        "additionalProperties": false,
+        "properties": {
+          "title":       { "type": "string", "minLength": 1, "maxLength": 200 },
+          "externalKey": { "type": "string", "description": "Ticket key, e.g. ABC-123" },
+          "url":         { "type": "string", "format": "uri" },
+          "summary":     { "type": "string", "description": "High-level problem in 1-2 sentences" },
+          "problem":     { "type": "string", "description": "What is wrong, from the user's perspective" },
+          "cause":       { "type": "string", "description": "Why it is happening, technically" },
+          "solution":    { "type": "string", "description": "Proposed fix" },
+          "targetDate":  { "type": "string", "format": "date" },
+          "subtasks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["title"],
+              "additionalProperties": false,
+              "properties": {
+                "title":          { "type": "string", "minLength": 1, "maxLength": 200, "description": "Starts with a verb, small and concrete" },
+                "description":    { "type": "string" },
+                "phase":          { "enum": ["understand", "investigate", "implement", "test", "review", "deploy", "other"] },
+                "timeboxMinutes": { "type": "integer", "minimum": 1, "maximum": 480 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
