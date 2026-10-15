@@ -3,6 +3,8 @@ import { resetDb } from '../test/dbHelpers'
 import { MINUTE } from '../domain/time'
 import {
   addSubtask,
+  archiveProject,
+  restoreProject,
   completeSubtask,
   createProject,
   deleteProject,
@@ -19,7 +21,7 @@ import {
   startChallenge,
 } from './actions'
 import { db } from './db'
-import { todaySummary } from '../domain/stats'
+import { todaySummary, undoneCompletions } from '../domain/stats'
 import { segmentsOverlapping } from './reports'
 import { dispatch } from './session'
 import { getAppState, getSession } from './store'
@@ -312,5 +314,68 @@ describe('unticking a step', () => {
     await completeSubtask(ids[0])
     await addSubtask(projectId, { title: 'One more thing' })
     expect(await db.events.where('type').equals('project_reopened').count()).toBe(1)
+  })
+})
+
+describe('project completion edge cases', () => {
+  it('deleting the last step left to do completes the project', async () => {
+    const { projectId, ids } = await setupProject(['a', 'b'])
+    await completeSubtask(ids[0])
+    await deleteSubtask(ids[1])
+    expect((await db.projects.get(projectId))?.status).toBe('done')
+    expect(await db.events.where('type').equals('project_completed').count()).toBe(1)
+  })
+
+  it('deleting every step does not complete an empty project', async () => {
+    const { projectId, ids } = await setupProject(['a'])
+    await deleteSubtask(ids[0])
+    expect((await db.projects.get(projectId))?.status).toBe('active')
+  })
+
+  it('archiving stops a running timer on the project', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    await archiveProject(projectId)
+    expect(await getSession()).toEqual({ state: 'idle' })
+    expect(await openSegments()).toHaveLength(0)
+  })
+
+  it('restoring a finished project brings it back as done, with no new events', async () => {
+    const { projectId, ids } = await setupProject(['a'])
+    await completeSubtask(ids[0])
+    await archiveProject(projectId)
+    await restoreProject(projectId)
+    expect((await db.projects.get(projectId))?.status).toBe('done')
+    expect(await db.events.where('type').equals('project_reopened').count()).toBe(0)
+  })
+
+  it('archive, add a step, restore and complete counts the project once', async () => {
+    const { projectId, ids } = await setupProject(['a'])
+    await completeSubtask(ids[0])
+    await archiveProject(projectId)
+    const extra = await addSubtask(projectId, { title: 'b' })
+    await restoreProject(projectId)
+    expect((await db.projects.get(projectId))?.status).toBe('active')
+    await completeSubtask(extra)
+    const events = await db.events.toArray()
+    const undone = undoneCompletions(events)
+    const counted = events.filter((e) => e.type === 'project_completed' && !undone.has(e))
+    expect(counted).toHaveLength(1)
+  })
+})
+
+describe('parking conversions are idempotent', () => {
+  it('a double "add as subtask" adds one step', async () => {
+    const { projectId } = await setupProject(['a'])
+    const itemId = await parkThought('Check logs', projectId)
+    const [first, second] = await Promise.all([parkingItemToSubtask(itemId), parkingItemToSubtask(itemId)])
+    expect([first, second].filter(Boolean)).toHaveLength(1)
+    expect(await db.subtasks.where('projectId').equals(projectId).count()).toBe(2)
+  })
+
+  it('a double "make a project" makes one project', async () => {
+    const itemId = await parkThought('New thing')
+    await Promise.all([parkingItemToProject(itemId), parkingItemToProject(itemId)])
+    expect(await db.projects.count()).toBe(1)
   })
 })

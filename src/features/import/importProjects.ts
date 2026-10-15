@@ -1,3 +1,4 @@
+import { reopenProjectIfCompleted } from '../../db/actions'
 import { db, newId } from '../../db/db'
 import { applyAction, SESSION_TABLES } from '../../db/session'
 import { getSession, logEvent } from '../../db/store'
@@ -69,9 +70,7 @@ export async function importProjects(
         // The session may point at a subtask that is about to be replaced.
         if ((await getSession()).projectId === projectId) await applyAction({ type: 'clear' })
         await db.subtasks.where('projectId').equals(projectId).delete()
-        if (existing.status === 'done') {
-          await logEvent('project_reopened', { ts: now, projectId, data: { reason: 'reimported' } })
-        }
+        await reopenProjectIfCompleted(projectId, 'reimported', now)
         await db.projects.update(projectId, {
           ...projectFields(p),
           status: 'active',

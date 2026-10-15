@@ -7,7 +7,7 @@ import { HintBar } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { NotFound } from '../../components/NotFound'
 import { ProgressBar } from '../../components/ProgressBar'
-import { deleteProject, setProjectStatus, updateProject } from '../../db/actions'
+import { archiveProject, deleteProject, restoreProject, updateProject } from '../../db/actions'
 import { db } from '../../db/db'
 import { firstTodo, progress } from '../../domain/rules'
 import { formatDuration, workMs } from '../../domain/time'
@@ -44,8 +44,10 @@ export function ProjectPage() {
 
   const { done, total } = progress(subtasks)
   const save = (field: keyof typeof project) => (value: string) => updateProject(project.id, { [field]: value.trim() || undefined })
+  // Titles can't be empty: returning false rejects the save and the field reverts.
   const saveTitle = (value: string) => {
-    if (value.trim()) void updateProject(project.id, { title: value.trim() })
+    if (!value.trim()) return false
+    void updateProject(project.id, { title: value.trim() })
   }
 
   const remove = async () => {
@@ -138,11 +140,11 @@ export function ProjectPage() {
 
           <div className={styles.dangerZone}>
             {project.status === 'archived' ? (
-              <Button size="sm" variant="ghost" icon="undo" onClick={() => void setProjectStatus(project.id, 'active')}>
+              <Button size="sm" variant="ghost" icon="undo" onClick={() => void restoreProject(project.id)}>
                 Restore
               </Button>
             ) : (
-              <Button size="sm" variant="ghost" icon="inbox" onClick={() => void setProjectStatus(project.id, 'archived')}>
+              <Button size="sm" variant="ghost" icon="inbox" onClick={() => void archiveProject(project.id)}>
                 Archive
               </Button>
             )}

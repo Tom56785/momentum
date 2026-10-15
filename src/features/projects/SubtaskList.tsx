@@ -30,9 +30,19 @@ export function SubtaskList({ projectId, subtasks, addInputRef }: SubtaskListPro
   }
 
   const move = async (id: string, index: number) => {
+    const active = document.activeElement
     await moveSubtask(id, index)
-    // Keep keyboard focus on the moved row.
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-row="${id}"] [data-grip]`)?.focus())
+    // Moving the row in the DOM can drop focus; put it back on the control that was used.
+    // If that control is now disabled (e.g. "Move up" at the top), use the other direction.
+    requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-row="${id}"]`)
+      if (!row) return
+      if (active instanceof HTMLElement && row.contains(active) && !active.matches(':disabled')) {
+        active.focus()
+        return
+      }
+      row.querySelector<HTMLElement>('[data-move]:not(:disabled), input')?.focus()
+    })
   }
 
   const onDrop = () => {
@@ -100,8 +110,10 @@ interface RowProps {
 
 function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, onDragStart, onDragEnd, onDragOverRow, onMove }: RowProps) {
   const [expanded, setExpanded] = useState(false)
+  // Titles can't be empty: returning false rejects the save and the field reverts.
   const [title, setTitle, flushTitle] = useAutosave(subtask.title, (t) => {
-    if (t.trim()) void updateSubtask(subtask.id, { title: t.trim() })
+    if (!t.trim()) return false
+    void updateSubtask(subtask.id, { title: t.trim() })
   })
   const [description, setDescription, flushDescription] = useAutosave(subtask.description ?? '', (d) =>
     updateSubtask(subtask.id, { description: d.trim() || undefined }),
@@ -230,8 +242,15 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
             <TimeboxPicker value={subtask.timeboxMinutes} onChange={(m) => void updateSubtask(subtask.id, { timeboxMinutes: m })} />
             <span className={styles.spacer} />
             {/* Reordering without drag-and-drop, which touch screens don't support. */}
-            <IconButton small icon="arrowUp" label="Move step up" disabled={index === 0} onClick={() => onMove(index - 1)} />
-            <IconButton small icon="arrowDown" label="Move step down" disabled={index === count - 1} onClick={() => onMove(index + 1)} />
+            <IconButton small icon="arrowUp" label="Move step up" data-move disabled={index === 0} onClick={() => onMove(index - 1)} />
+            <IconButton
+              small
+              icon="arrowDown"
+              label="Move step down"
+              data-move
+              disabled={index === count - 1}
+              onClick={() => onMove(index + 1)}
+            />
             <IconButton small icon="trash" label="Delete step" onClick={() => void remove()} />
           </div>
           <textarea

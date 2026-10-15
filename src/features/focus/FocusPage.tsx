@@ -164,11 +164,15 @@ export function FocusPage() {
     setJustCompleted((n) => n + 1)
     // Keep Space meaning start/stop rather than "complete again".
     startRef.current?.focus()
-    const [result] = await Promise.all([
-      completeSubtask(subtask.id, 'focus'),
-      pause(reducedMotion() ? 500 : CELEBRATION_MS),
-    ])
-    setCelebration(null)
+    let result: CompleteResult
+    try {
+      ;[result] = await Promise.all([completeSubtask(subtask.id, 'focus'), pause(reducedMotion() ? 500 : CELEBRATION_MS)])
+    } catch {
+      showToast({ text: "That step didn't save. Try again?", duration: 4000 })
+      return
+    } finally {
+      setCelebration(null)
+    }
     if (result.challenge?.outcome === 'beat') {
       celebrateBig()
       showToast({

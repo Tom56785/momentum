@@ -26,6 +26,8 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
   const [parkedCount, setParkedCount] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const returnFocus = useRef<Element | null>(null)
+  // Guards against a double Enter parking the same thought twice.
+  const saving = useRef(false)
 
   useEffect(() => {
     returnFocus.current = document.activeElement
@@ -37,13 +39,19 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
   }, [])
 
   const save = async (stayOpen: boolean) => {
+    if (saving.current) return
     const value = text.trim()
     if (!value) {
       if (!stayOpen) onClose()
       return
     }
-    await parkThought(value, linked ? projectId : undefined)
+    saving.current = true
     setText('')
+    try {
+      await parkThought(value, linked ? projectId : undefined)
+    } finally {
+      saving.current = false
+    }
     setParkedCount((n) => n + 1)
     showToast({ text: 'Parked', tone: 'success', duration: 1400 })
     if (!stayOpen) onClose()

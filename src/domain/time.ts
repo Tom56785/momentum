@@ -36,6 +36,13 @@ export function startOfDay(ts: number): number {
   return d.getTime()
 }
 
+/** Local midnight at the start of the next calendar day. */
+export function startOfNextDay(ts: number): number {
+  const d = new Date(startOfDay(ts))
+  d.setDate(d.getDate() + 1)
+  return d.getTime()
+}
+
 /** Formats a duration as e.g. "1h 05m", "12m" or "45s". */
 export function formatDuration(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000))

@@ -1,10 +1,11 @@
 import { useId, useLayoutEffect, useRef } from 'react'
-import { useAutosave } from '../hooks/useDebounced'
+import { useAutosave, type AutosaveFn } from '../hooks/useDebounced'
 
 interface AutoFieldProps {
   label: string
   value: string | undefined
-  onSave: (value: string) => void | Promise<void>
+  /** Return false to reject a value; the field then reverts to the stored one. */
+  onSave: AutosaveFn
   multiline?: boolean
   placeholder?: string
   type?: 'text' | 'url' | 'date'

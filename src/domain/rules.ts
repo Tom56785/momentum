@@ -93,10 +93,16 @@ const PASSIVE_EVENTS: ReadonlySet<AppEvent['type']> = new Set([
   'stale_session_resolved',
 ])
 
+function isPassive(e: Pick<AppEvent, 'type' | 'data'>): boolean {
+  // A challenge running out is logged by a timer, not by the user.
+  if (e.type === 'challenge_ended' && e.data?.outcome === 'timeUp') return true
+  return PASSIVE_EVENTS.has(e.type)
+}
+
 /** When to end a stale segment: the last user activity, never before the segment began. */
-export function staleEndTime(openSegment: Segment, events: readonly Pick<AppEvent, 'ts' | 'type'>[]): number {
+export function staleEndTime(openSegment: Segment, events: readonly Pick<AppEvent, 'ts' | 'type' | 'data'>[]): number {
   let last = openSegment.startedAt
-  for (const e of events) if (e.ts > last && !PASSIVE_EVENTS.has(e.type)) last = e.ts
+  for (const e of events) if (e.ts > last && !isPassive(e)) last = e.ts
   return last
 }
 

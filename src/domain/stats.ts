@@ -1,5 +1,5 @@
 import type { AppEvent, Phase, Segment, Subtask } from '../db/types'
-import { DAY, HOUR, overlapMs, startOfDay } from './time'
+import { HOUR, overlapMs, startOfDay, startOfNextDay } from './time'
 
 /**
  * Completion events that a later reopen undid: a subtask_completed followed by a
@@ -40,7 +40,7 @@ export function todaySummary(
   now: number,
 ): TodaySummary {
   const from = startOfDay(now)
-  const to = from + DAY
+  const to = startOfNextDay(now)
   let focusMs = 0
   for (const s of segments) if (s.kind === 'work') focusMs += overlapMs(s, from, to, now)
   const undone = undoneCompletions(events)

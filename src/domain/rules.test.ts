@@ -136,6 +136,13 @@ describe('stale sessions', () => {
     expect(staleEndTime(open, events)).toBe(T0 + 20 * MINUTE)
     expect(staleEndTime(open, [])).toBe(T0)
   })
+
+  it('ignores a challenge that timed out by itself, but not one the user ended', () => {
+    const timedOut = { ts: T0 + 25 * MINUTE, type: 'challenge_ended' as const, data: { outcome: 'timeUp' } }
+    const cancelled = { ts: T0 + 26 * MINUTE, type: 'challenge_ended' as const, data: { outcome: 'cancelled' } }
+    expect(staleEndTime(open, [{ ts: T0 + 5 * MINUTE, type: 'time_revealed' as const }, timedOut])).toBe(T0 + 5 * MINUTE)
+    expect(staleEndTime(open, [timedOut, cancelled])).toBe(T0 + 26 * MINUTE)
+  })
 })
 
 describe('subtask chain', () => {

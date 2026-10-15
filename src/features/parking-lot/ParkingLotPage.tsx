@@ -70,8 +70,10 @@ export function ParkingLotPage() {
       setExpanded(id)
       return
     }
-    await parkingItemToSubtask(id)
-    showToast({ text: `Added to ${projectById.get(item.projectId)?.title ?? 'project'}`, tone: 'success' })
+    // Returns nothing if it was already converted (e.g. a double press).
+    if (await parkingItemToSubtask(id)) {
+      showToast({ text: `Added to ${projectById.get(item.projectId)?.title ?? 'project'}`, tone: 'success' })
+    }
   }
 
   const markDone = async (id: string) => {

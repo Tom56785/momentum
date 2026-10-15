@@ -3,7 +3,7 @@ import { IconButton } from '../../components/Button'
 import { db } from '../../db/db'
 import { segmentsOverlapping } from '../../db/reports'
 import { todaySummary } from '../../domain/stats'
-import { DAY, formatDuration, startOfDay } from '../../domain/time'
+import { formatDuration, startOfDay, startOfNextDay } from '../../domain/time'
 import { useReveal } from '../../hooks/useData'
 import { useNow } from '../../hooks/useNow'
 import styles from './TodayStrip.module.css'
@@ -14,7 +14,7 @@ export function TodayStrip() {
   const dayStart = startOfDay(now)
   const reveal = useReveal()
   const data = useLiveQuery(async () => {
-    const segments = await segmentsOverlapping(dayStart, dayStart + DAY)
+    const segments = await segmentsOverlapping(dayStart, startOfNextDay(dayStart))
     const events = await db.events.where('ts').aboveOrEqual(dayStart).toArray()
     return { segments, events }
   }, [dayStart])

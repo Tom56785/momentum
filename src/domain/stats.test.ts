@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AppEvent, Segment, Subtask } from '../db/types'
 import { summariseWeek, todaySummary, undoneCompletions } from './stats'
-import { DAY, HOUR, MINUTE } from './time'
+import { DAY, HOUR, MINUTE, startOfDay, startOfNextDay } from './time'
 
 // Local-time anchors so hour/day buckets are timezone independent.
 const MON = new Date('2026-10-12T00:00:00').getTime()
@@ -121,5 +121,20 @@ describe('reopened completions', () => {
     ]
     const week = summariseWeek({ segments: [], events, subtasks }, MON, MON + 7 * DAY, at(9, 12))
     expect(week.subtasksCompleted).toBe(0)
+  })
+})
+
+describe('clock-change days', () => {
+  it('Today covers the whole 25-hour day when the clocks go back', () => {
+    // Europe/London (set in vitest config): clocks go back at 02:00 on 25 Oct 2026.
+    const late = new Date('2026-10-25T23:30:00').getTime()
+    expect(startOfNextDay(late) - startOfDay(late)).toBe(25 * HOUR)
+    const events: AppEvent[] = [{ ts: late, type: 'subtask_completed', subtaskId: 's1' }]
+    const segments: Segment[] = [{ id: 'w', kind: 'work', startedAt: late - 10 * MINUTE, endedAt: late }]
+    expect(todaySummary(segments, events, late + MINUTE)).toEqual({
+      subtasksCompleted: 1,
+      projectsCompleted: 0,
+      focusMs: 10 * MINUTE,
+    })
   })
 })
