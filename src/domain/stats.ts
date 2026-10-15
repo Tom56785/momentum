@@ -1,6 +1,33 @@
 import type { AppEvent, Phase, Segment, Subtask } from '../db/types'
 import { DAY, HOUR, overlapMs, startOfDay } from './time'
 
+/**
+ * Completion events that a later reopen undid: a subtask_completed followed by a
+ * subtask_reopened for the same step, or a project_completed followed by a
+ * project_reopened for the same project. Counts should skip these, so a step that was
+ * unticked and completed again counts once, at its final completion.
+ */
+export function undoneCompletions(events: readonly AppEvent[]): Set<AppEvent> {
+  const ordered = [...events].sort((a, b) => a.ts - b.ts || (a.seq ?? 0) - (b.seq ?? 0))
+  const lastStep = new Map<string, AppEvent>()
+  const lastProject = new Map<string, AppEvent>()
+  const undone = new Set<AppEvent>()
+  for (const e of ordered) {
+    if (e.type === 'subtask_completed' && e.subtaskId) lastStep.set(e.subtaskId, e)
+    else if (e.type === 'project_completed' && e.projectId) lastProject.set(e.projectId, e)
+    else if (e.type === 'subtask_reopened' && e.subtaskId) {
+      const done = lastStep.get(e.subtaskId)
+      if (done) undone.add(done)
+      lastStep.delete(e.subtaskId)
+    } else if (e.type === 'project_reopened' && e.projectId) {
+      const done = lastProject.get(e.projectId)
+      if (done) undone.add(done)
+      lastProject.delete(e.projectId)
+    }
+  }
+  return undone
+}
+
 export interface TodaySummary {
   subtasksCompleted: number
   projectsCompleted: number
@@ -16,7 +43,8 @@ export function todaySummary(
   const to = from + DAY
   let focusMs = 0
   for (const s of segments) if (s.kind === 'work') focusMs += overlapMs(s, from, to, now)
-  const inDay = events.filter((e) => e.ts >= from && e.ts < to)
+  const undone = undoneCompletions(events)
+  const inDay = events.filter((e) => e.ts >= from && e.ts < to && !undone.has(e))
   return {
     subtasksCompleted: inDay.filter((e) => e.type === 'subtask_completed').length,
     projectsCompleted: inDay.filter((e) => e.type === 'project_completed').length,
@@ -66,7 +94,8 @@ function hourPieces(from: number, to: number): { hour: number; day: string; ms: 
 
 /**
  * Totals for the window [start, end): work by day, phase and hour of day, break counts,
- * snooze counts and challenge outcomes. Segments are clipped to the window.
+ * snooze counts and challenge outcomes. Segments are clipped to the window. Pass events up
+ * to now (not just to `end`), so completions reopened after the window are still skipped.
  */
 export function summariseWeek(
   data: { segments: readonly Segment[]; events: readonly AppEvent[]; subtasks: readonly Subtask[] },
@@ -108,8 +137,9 @@ export function summariseWeek(
     }
   }
 
+  const undone = undoneCompletions(data.events)
   for (const e of data.events) {
-    if (e.ts < start || e.ts >= end) continue
+    if (e.ts < start || e.ts >= end || undone.has(e)) continue
     switch (e.type) {
       case 'subtask_completed':
         summary.subtasksCompleted++

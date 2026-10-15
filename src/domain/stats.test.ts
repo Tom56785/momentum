@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AppEvent, Segment, Subtask } from '../db/types'
-import { summariseWeek, todaySummary } from './stats'
+import { summariseWeek, todaySummary, undoneCompletions } from './stats'
 import { DAY, HOUR, MINUTE } from './time'
 
 // Local-time anchors so hour/day buckets are timezone independent.
@@ -79,5 +79,47 @@ describe('todaySummary', () => {
   it('counts today only', () => {
     const today = todaySummary(segments, events, at(0, 18))
     expect(today).toEqual({ subtasksCompleted: 1, projectsCompleted: 0, focusMs: 60 * MINUTE })
+  })
+})
+
+describe('reopened completions', () => {
+  const e = (seq: number, ts: number, type: AppEvent['type'], ids: Partial<AppEvent> = {}): AppEvent => ({ seq, ts, type, ...ids })
+
+  it('marks a completion undone only when a later reopen follows it', () => {
+    const first = e(1, at(0, 9), 'subtask_completed', { subtaskId: 's1' })
+    const reopen = e(2, at(0, 10), 'subtask_reopened', { subtaskId: 's1' })
+    const again = e(3, at(0, 11), 'subtask_completed', { subtaskId: 's1' })
+    const other = e(4, at(0, 11), 'subtask_completed', { subtaskId: 's2' })
+    const undone = undoneCompletions([again, other, reopen, first])
+    expect([...undone]).toEqual([first])
+  })
+
+  it('handles projects the same way', () => {
+    const done = e(1, at(0, 9), 'project_completed', { projectId: 'p' })
+    const reopened = e(2, at(0, 9, 5), 'project_reopened', { projectId: 'p' })
+    expect([...undoneCompletions([done, reopened])]).toEqual([done])
+  })
+
+  it('counts a step completed, unticked and completed again once in Today', () => {
+    const events = [
+      e(1, at(0, 9), 'subtask_completed', { subtaskId: 's1' }),
+      e(2, at(0, 9, 1), 'project_completed', { projectId: 'p' }),
+      e(3, at(0, 9, 30), 'subtask_reopened', { subtaskId: 's1' }),
+      e(4, at(0, 9, 30), 'project_reopened', { projectId: 'p' }),
+      e(5, at(0, 10), 'subtask_completed', { subtaskId: 's1' }),
+      e(6, at(0, 10), 'project_completed', { projectId: 'p' }),
+    ]
+    expect(todaySummary([], events, at(0, 18))).toMatchObject({ subtasksCompleted: 1, projectsCompleted: 1 })
+    // Unticked and left undone: nothing counts.
+    expect(todaySummary([], events.slice(0, 4), at(0, 18))).toMatchObject({ subtasksCompleted: 0, projectsCompleted: 0 })
+  })
+
+  it('skips a week completion reopened after the window ends', () => {
+    const events = [
+      e(1, at(2, 9), 'subtask_completed', { subtaskId: 's1' }),
+      e(2, at(9, 9), 'subtask_reopened', { subtaskId: 's1' }),
+    ]
+    const week = summariseWeek({ segments: [], events, subtasks }, MON, MON + 7 * DAY, at(9, 12))
+    expect(week.subtasksCompleted).toBe(0)
   })
 })

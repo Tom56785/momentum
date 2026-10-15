@@ -15,9 +15,11 @@ import {
   parkingItemToSubtask,
   parkThought,
   projectSubtasks,
+  reopenSubtask,
   startChallenge,
 } from './actions'
 import { db } from './db'
+import { todaySummary } from '../domain/stats'
 import { segmentsOverlapping } from './reports'
 import { dispatch } from './session'
 import { getAppState, getSession } from './store'
@@ -274,5 +276,41 @@ describe('segmentsOverlapping', () => {
     const ids2 = (await segmentsOverlapping(day, day + 24 * 60 * MINUTE)).map((s) => s.id).sort()
     const openId = (await getSession()).openSegmentId!
     expect(ids2).toEqual(['spans', openId].sort())
+  })
+})
+
+describe('unticking a step', () => {
+  it('logs the reopen, reopens the project, and counts the step once when re-completed', async () => {
+    const { projectId, ids } = await setupProject(['only'])
+    await completeSubtask(ids[0])
+    expect((await db.projects.get(projectId))?.status).toBe('done')
+
+    vi.setSystemTime(T0 + 10 * MINUTE)
+    await reopenSubtask(ids[0])
+    expect((await db.projects.get(projectId))?.status).toBe('active')
+    const types = (await db.events.orderBy('seq').toArray()).map((e) => e.type)
+    expect(types.slice(-2)).toEqual(['subtask_reopened', 'project_reopened'])
+
+    // More time can be logged against it, then it can be completed again.
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    vi.setSystemTime(T0 + 15 * MINUTE)
+    await completeSubtask(ids[0])
+
+    const events = await db.events.toArray()
+    expect(events.filter((e) => e.type === 'subtask_completed')).toHaveLength(2)
+    expect(todaySummary([], events, Date.now())).toMatchObject({ subtasksCompleted: 1, projectsCompleted: 1 })
+  })
+
+  it('ignores unticking a step that is not done', async () => {
+    const { ids } = await setupProject(['only'])
+    await reopenSubtask(ids[0])
+    expect(await db.events.where('type').equals('subtask_reopened').count()).toBe(0)
+  })
+
+  it('logs a project reopen when a step is added to a finished project', async () => {
+    const { projectId, ids } = await setupProject(['only'])
+    await completeSubtask(ids[0])
+    await addSubtask(projectId, { title: 'One more thing' })
+    expect(await db.events.where('type').equals('project_reopened').count()).toBe(1)
   })
 })

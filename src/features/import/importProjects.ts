@@ -69,6 +69,9 @@ export async function importProjects(
         // The session may point at a subtask that is about to be replaced.
         if ((await getSession()).projectId === projectId) await applyAction({ type: 'clear' })
         await db.subtasks.where('projectId').equals(projectId).delete()
+        if (existing.status === 'done') {
+          await logEvent('project_reopened', { ts: now, projectId, data: { reason: 'reimported' } })
+        }
         await db.projects.update(projectId, {
           ...projectFields(p),
           status: 'active',

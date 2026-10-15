@@ -25,7 +25,8 @@ export async function segmentsOverlapping(from: number, to: number): Promise<Seg
  */
 export async function loadWeekSummary(start: number, end: number): Promise<WeekSummary> {
   const segments = await segmentsOverlapping(start, end)
-  const events = await db.events.where('ts').between(start, end, true, false).toArray()
+  // Events after the window too, so completions reopened later are not counted.
+  const events = await db.events.where('ts').aboveOrEqual(start).toArray()
   const subtasks = await db.subtasks.toArray()
   return summariseWeek({ segments, events, subtasks }, start, end)
 }

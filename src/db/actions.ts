@@ -67,7 +67,7 @@ export async function addSubtask(
   fields: { title: string; description?: string; phase?: Phase; timeboxMinutes?: number },
 ): Promise<string> {
   const id = newId()
-  await db.transaction('rw', db.subtasks, db.projects, async () => {
+  await db.transaction('rw', db.subtasks, db.projects, db.events, async () => {
     const existing = await projectSubtasks(projectId)
     const order = existing.length ? existing[existing.length - 1].order + 1 : 0
     await db.subtasks.add({
@@ -84,7 +84,10 @@ export async function addSubtask(
     })
     const project = await db.projects.get(projectId)
     // Adding work to a finished project re-opens it.
-    if (project?.status === 'done') await db.projects.update(projectId, { status: 'active', completedAt: undefined })
+    if (project?.status === 'done') {
+      await db.projects.update(projectId, { status: 'active', completedAt: undefined })
+      await logEvent('project_reopened', { projectId, data: { reason: 'subtaskAdded' } })
+    }
     await db.projects.update(projectId, { updatedAt: Date.now() })
   })
   return id
@@ -200,15 +203,21 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
   })
 }
 
-/** Marks a done subtask as to-do again (re-opening its project if needed). */
+/**
+ * Marks a done subtask as to-do again (re-opening its project if needed). The reopen is
+ * logged so reports can ignore the completion it undid instead of counting the step twice.
+ */
 export async function reopenSubtask(id: string): Promise<void> {
-  await db.transaction('rw', db.subtasks, db.projects, async () => {
+  await db.transaction('rw', db.subtasks, db.projects, db.events, async () => {
     const subtask = await db.subtasks.get(id)
-    if (!subtask) return
+    if (!subtask || subtask.status !== 'done') return
+    const now = Date.now()
     await db.subtasks.update(id, { status: 'todo', completedAt: undefined })
+    await logEvent('subtask_reopened', { ts: now, projectId: subtask.projectId, subtaskId: id })
     const project = await db.projects.get(subtask.projectId)
     if (project?.status === 'done') {
-      await db.projects.update(project.id, { status: 'active', completedAt: undefined, updatedAt: Date.now() })
+      await db.projects.update(project.id, { status: 'active', completedAt: undefined, updatedAt: now })
+      await logEvent('project_reopened', { ts: now, projectId: project.id, data: { reason: 'subtaskReopened' } })
     }
   })
 }
