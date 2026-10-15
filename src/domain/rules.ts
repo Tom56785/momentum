@@ -133,3 +133,19 @@ export function progress(subtasks: readonly Pick<Subtask, 'status'>[]): { done: 
   const ratio = total === 0 ? 0 : Math.min(1, Math.max(0, done / total))
   return { done, total, ratio }
 }
+
+// ---- Finishing early ----
+
+/** Time to spare when a step is completed inside its timebox, or undefined if not early. */
+export function earlyFinishMs(timeboxMinutes: number | undefined, subtaskWorkMs: number): number | undefined {
+  // A step completed without any tracked work isn't "early"; we just don't know.
+  if (subtaskWorkMs <= 0) return undefined
+  const left = timeboxLeftMs(timeboxMinutes, subtaskWorkMs)
+  return left !== undefined && left > 0 ? left : undefined
+}
+
+export function earlyFinishMessage(spareMs: number): string {
+  const minutes = Math.floor(spareMs / MINUTE)
+  if (minutes < 1) return 'Done just inside your timebox'
+  return `Done with ${minutes} min to spare`
+}

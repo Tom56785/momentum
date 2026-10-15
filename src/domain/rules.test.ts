@@ -3,6 +3,8 @@ import type { Challenge, Segment, Session, Subtask } from '../db/types'
 import {
   adjacentTodo,
   beatTimeboxMinutes,
+  earlyFinishMessage,
+  earlyFinishMs,
   challengeLeftMs,
   isBreakOver,
   isChallengeTimeUp,
@@ -159,5 +161,19 @@ describe('subtask chain', () => {
   it('clamps progress to 0..1', () => {
     expect(progress([])).toEqual({ done: 0, total: 0, ratio: 0 })
     expect(progress(chain).ratio).toBeCloseTo(0.4)
+  })
+})
+
+describe('finishing early', () => {
+  it('is early only with tracked work and time left on the timebox', () => {
+    expect(earlyFinishMs(25, 18 * MINUTE)).toBe(7 * MINUTE)
+    expect(earlyFinishMs(25, 25 * MINUTE)).toBeUndefined()
+    expect(earlyFinishMs(25, 0)).toBeUndefined()
+    expect(earlyFinishMs(undefined, 5 * MINUTE)).toBeUndefined()
+  })
+
+  it('describes the time to spare', () => {
+    expect(earlyFinishMessage(7 * MINUTE + 40_000)).toBe('Done with 7 min to spare')
+    expect(earlyFinishMessage(30_000)).toBe('Done just inside your timebox')
   })
 })

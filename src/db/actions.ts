@@ -1,4 +1,4 @@
-import { challengeElapsedMs, nextTodo, sortByOrder } from '../domain/rules'
+import { challengeElapsedMs, earlyFinishMs, nextTodo, sortByOrder } from '../domain/rules'
 import type { Via } from '../domain/session'
 import { MINUTE, workMs } from '../domain/time'
 import { db, newId } from './db'
@@ -124,6 +124,8 @@ export async function moveSubtask(id: string, toIndex: number): Promise<void> {
 
 export interface CompleteResult {
   nextSubtaskId?: string
+  /** Time to spare on the step's timebox, when it was finished early. */
+  earlyByMs?: number
   projectCompleted: boolean
   totalWorkMs?: number
   challenge?: { outcome: 'beat' | 'timeUp'; elapsedMs: number; newPersonalBest: boolean; phase: Phase }
@@ -155,7 +157,11 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
       data: { workMs: workOnSubtask, timeboxMinutes: subtask.timeboxMinutes, phase: subtask.phase },
     })
 
-    const result: CompleteResult = { nextSubtaskId: next?.id, projectCompleted: false }
+    const result: CompleteResult = {
+      nextSubtaskId: next?.id,
+      earlyByMs: earlyFinishMs(subtask.timeboxMinutes, workOnSubtask),
+      projectCompleted: false,
+    }
 
     const challenge = await getAppState('challenge')
     if (challenge?.subtaskId === id) {

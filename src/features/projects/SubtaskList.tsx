@@ -1,11 +1,12 @@
 import { useState, type RefObject } from 'react'
 import { IconButton } from '../../components/Button'
-import { celebrateBig, celebrateSmall } from '../../components/celebrate'
+import { celebrateBig, celebrateEarly, celebrateSmall } from '../../components/celebrate'
 import { Icon } from '../../components/Icon'
 import { TimeboxPicker } from '../../components/TimeboxPicker'
 import { showToast } from '../../components/toast'
 import { addSubtask, completeSubtask, deleteSubtask, moveSubtask, reopenSubtask, updateSubtask } from '../../db/actions'
 import { PHASES, type Phase, type Subtask } from '../../db/types'
+import { earlyFinishMessage } from '../../domain/rules'
 import { useAutosave } from '../../hooks/useDebounced'
 import styles from './SubtaskList.module.css'
 
@@ -114,6 +115,10 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
     }
     celebrateSmall(el)
     const result = await completeSubtask(subtask.id, 'button')
+    if (result.earlyByMs !== undefined && !result.projectCompleted) {
+      celebrateEarly(el)
+      showToast({ text: earlyFinishMessage(result.earlyByMs), tone: 'celebrate' })
+    }
     if (result.projectCompleted) {
       celebrateBig()
       showToast({ text: 'Project complete — moved to Done', tone: 'celebrate', duration: 4000 })

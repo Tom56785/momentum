@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Button, IconButton } from '../../components/Button'
-import { celebrateBig, celebrateSmall } from '../../components/celebrate'
+import { celebrateBig, celebrateEarly, celebrateSmall, reducedMotion } from '../../components/celebrate'
 import { HintBar, type Hint } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -9,8 +9,18 @@ import { showToast } from '../../components/toast'
 import { completeSubtask, endChallenge, enterFocus, startChallenge, type CompleteResult } from '../../db/actions'
 import { dispatch } from '../../db/session'
 import { logEvent } from '../../db/store'
-import { adjacentTodo, beatTimeboxMinutes, progress, shouldPromptTimebox, shouldShowBreakPrompt, timeboxLeftMs } from '../../domain/rules'
+import {
+  adjacentTodo,
+  beatTimeboxMinutes,
+  earlyFinishMessage,
+  earlyFinishMs,
+  progress,
+  shouldPromptTimebox,
+  shouldShowBreakPrompt,
+  timeboxLeftMs,
+} from '../../domain/rules'
 import type { Via } from '../../domain/session'
+import type { Subtask } from '../../db/types'
 import { formatDuration, MINUTE, workMs } from '../../domain/time'
 import { useChallenge, useProject, useReveal, useSegmentsFor, useSession, useSettings, useSubtasks } from '../../hooks/useData'
 import { useNow } from '../../hooks/useNow'
@@ -24,6 +34,19 @@ import { NotesArea } from './NotesArea'
 import { ProjectComplete } from './ProjectComplete'
 import { TimeRow } from './TimeRow'
 import { useFullscreen } from './useFullscreen'
+
+/** How long a finished step stays on screen, celebrating, before the next one slides in. */
+const CELEBRATION_MS = 1200
+const DONE_MESSAGES = ['Step done', 'Nice work', 'Done — onwards', 'One more down']
+
+interface Celebration {
+  subtask: Subtask
+  index: number
+  message: string
+  early: boolean
+}
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function FocusPage() {
   const { projectId } = useParams()
@@ -45,6 +68,7 @@ export function FocusPage() {
   const [timeboxPromptFor, setTimeboxPromptFor] = useState<string | null>(null)
   const [completed, setCompleted] = useState<CompleteResult | null>(null)
   const [justCompleted, setJustCompleted] = useState(0)
+  const [celebration, setCelebration] = useState<Celebration | null>(null)
   const completeRef = useRef<HTMLButtonElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   const startRef = useRef<HTMLButtonElement>(null)
@@ -124,12 +148,27 @@ export function FocusPage() {
   }
 
   const complete = async () => {
-    if (!subtask) return
-    celebrateSmall(completeRef.current)
+    if (!subtask || celebration) return
+    // The step is saved straight away (so no extra time lands on it), but stays on screen
+    // for a moment of celebration before the next one slides in.
+    const spare = earlyFinishMs(subtask.timeboxMinutes, subtaskWorkMs)
+    const early = spare !== undefined
+    setCelebration({
+      subtask,
+      index: chain.findIndex((s) => s.id === subtask.id),
+      early,
+      message: early ? earlyFinishMessage(spare) : DONE_MESSAGES[justCompleted % DONE_MESSAGES.length],
+    })
+    if (early) celebrateEarly(completeRef.current)
+    else celebrateSmall(completeRef.current)
     setJustCompleted((n) => n + 1)
     // Keep Space meaning start/stop rather than "complete again".
     startRef.current?.focus()
-    const result = await completeSubtask(subtask.id, 'focus')
+    const [result] = await Promise.all([
+      completeSubtask(subtask.id, 'focus'),
+      pause(reducedMotion() ? 500 : CELEBRATION_MS),
+    ])
+    setCelebration(null)
     if (result.challenge?.outcome === 'beat') {
       celebrateBig()
       showToast({
@@ -140,10 +179,9 @@ export function FocusPage() {
         duration: 4500,
       })
     }
-    if (result.projectCompleted) {
-      celebrateBig()
-      setCompleted(result)
-    }
+    // The project celebration follows the last step's moment rather than drowning it out.
+    // ProjectComplete fires the confetti itself, above its dialog's backdrop.
+    if (result.projectCompleted) setCompleted(result)
     setTimeboxPromptFor(null)
   }
 
@@ -173,6 +211,8 @@ export function FocusPage() {
   }
 
   const busy = exitOpen || parkOpen || !!completed
+  // What the card shows: the finished step while it celebrates, otherwise the current one.
+  const shown = celebration?.subtask ?? subtask
   useShortcuts(
     {
       Space: () => toggleWork('shortcut'),
@@ -193,8 +233,12 @@ export function FocusPage() {
     !busy,
     { spaceOverridesButtons: true },
   )
+  // Once the project is complete the page is a celebration; Esc heads back to the overview.
+  useShortcuts({ Escape: () => navigate('/') }, !!completed && !exitOpen && !parkOpen)
 
-  const hints: Hint[] = onBreak
+  const hints: Hint[] = completed
+    ? [['Enter', 'Back to overview']]
+    : onBreak
     ? [
         ['B', 'Resume work'],
         ['Esc', 'Exit'],
@@ -260,14 +304,6 @@ export function FocusPage() {
         onExited={() => navigate('/')}
       />
       <ParkingCapture open={parkOpen} projectId={projectId} projectTitle={project.title} onClose={() => setParkOpen(false)} />
-      {completed && (
-        <ProjectComplete
-          title={project.title}
-          steps={total}
-          totalWorkMs={completed.totalWorkMs ?? 0}
-          onDone={() => navigate('/')}
-        />
-      )}
     </>
   )
 
@@ -287,7 +323,7 @@ export function FocusPage() {
       {topBar}
 
       <main className={styles.main}>
-        {breakPrompt && (
+        {breakPrompt && !completed && (
           <div className={styles.banner} role="status" data-own-keys>
             <Icon name="coffee" size={18} />
             <span>You've been going for a while. A short break helps the next stretch.</span>
@@ -322,7 +358,7 @@ export function FocusPage() {
           </div>
         )}
 
-        {showBreadcrumb && project.breadcrumb && (
+        {showBreadcrumb && project.breadcrumb && !completed && (
           <div className={styles.breadcrumb}>
             <Icon name="note" size={16} />
             <div>
@@ -338,36 +374,64 @@ export function FocusPage() {
           </div>
         )}
 
-        {subtask ? (
+        {completed ? (
+          <ProjectComplete
+            title={project.title}
+            steps={total}
+            totalWorkMs={completed.totalWorkMs ?? 0}
+            onDone={() => navigate('/')}
+          />
+        ) : shown ? (
           <>
             <div className={styles.taskRow}>
               <IconButton
                 icon="chevronLeft"
                 label="Previous step"
-                disabled={!prev}
+                disabled={!prev || !!celebration}
                 onClick={() => void switchTo(prev?.id)}
               />
               <section
-                key={subtask.id}
-                className={[styles.card, activeChallenge && styles.challenge].filter(Boolean).join(' ')}
+                key={shown.id}
+                className={[
+                  styles.card,
+                  activeChallenge && !celebration && styles.challenge,
+                  celebration && styles.celebrating,
+                  celebration?.early && styles.celebratingEarly,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 aria-live="polite"
               >
                 <span className={styles.stepLabel}>
-                  Step {chain.findIndex((s) => s.id === subtask.id) + 1} of {total}
-                  {subtask.phase && <> · {subtask.phase}</>}
+                  Step {(celebration ? celebration.index : chain.findIndex((s) => s.id === shown.id)) + 1} of {total}
+                  {shown.phase && <> · {shown.phase}</>}
                 </span>
-                <h1 className={styles.taskTitle}>{subtask.title}</h1>
-                {subtask.description && <p className={styles.description}>{subtask.description}</p>}
-                <TimeRow
-                  subtask={subtask}
-                  subtaskWorkMs={subtaskWorkMs}
-                  challenge={activeChallenge}
-                  showWork={reveal.work}
-                  showTimers={reveal.timers}
-                  onToggleWork={() => reveal.toggle('work')}
-                />
+                <h1 className={styles.taskTitle}>{shown.title}</h1>
+                {shown.description && <p className={styles.description}>{shown.description}</p>}
+                {celebration ? (
+                  <div className={styles.doneRow}>
+                    <span className={styles.doneBadge}>
+                      <Icon name={celebration.early ? 'sparkle' : 'check'} size={20} />
+                    </span>
+                    <span className={styles.doneMessage}>{celebration.message}</span>
+                  </div>
+                ) : (
+                  <TimeRow
+                    subtask={shown}
+                    subtaskWorkMs={subtaskWorkMs}
+                    challenge={activeChallenge}
+                    showWork={reveal.work}
+                    showTimers={reveal.timers}
+                    onToggleWork={() => reveal.toggle('work')}
+                  />
+                )}
               </section>
-              <IconButton icon="chevronRight" label="Next step" disabled={!next} onClick={() => void switchTo(next?.id)} />
+              <IconButton
+                icon="chevronRight"
+                label="Next step"
+                disabled={!next || !!celebration}
+                onClick={() => void switchTo(next?.id)}
+              />
             </div>
 
             <div className={styles.progress}>
@@ -390,7 +454,14 @@ export function FocusPage() {
                 {working ? 'Pause' : 'Start'}
               </Button>
               <div className={styles.secondary}>
-                <Button ref={completeRef} variant={working ? 'success' : 'secondary'} size="lg" icon="check" onClick={() => void complete()}>
+                <Button
+                  ref={completeRef}
+                  variant={working || celebration ? 'success' : 'secondary'}
+                  size="lg"
+                  icon="check"
+                  onClick={() => void complete()}
+                  aria-disabled={!!celebration}
+                >
                   Complete
                 </Button>
                 <Button variant="ghost" size="lg" icon="coffee" onClick={() => toggleBreak('button')}>
@@ -407,7 +478,7 @@ export function FocusPage() {
                   {challengeOpen && (
                     <ChallengeMenu
                       active={!!activeChallenge}
-                      beatMinutes={beatTimeboxMinutes(subtask.timeboxMinutes, subtaskWorkMs)}
+                      beatMinutes={beatTimeboxMinutes(shown.timeboxMinutes, subtaskWorkMs)}
                       onStart={(m) => void beginChallenge(m, 'manual')}
                       onCancelChallenge={() => void cancelChallenge()}
                       onClose={() => setChallengeOpen(false)}

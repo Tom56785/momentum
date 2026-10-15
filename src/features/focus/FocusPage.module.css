@@ -192,6 +192,93 @@
   }
 }
 
+/* Step done: the finished card glows green for a moment before the next step slides in. */
+.celebrating {
+  background: color-mix(in srgb, var(--success-soft) 70%, var(--bg-elevated));
+  box-shadow:
+    0 0 0 2px var(--success),
+    0 0 48px 6px color-mix(in srgb, var(--success) 30%, transparent);
+  animation: done-pulse 700ms var(--ease-spring);
+  transition:
+    background-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.celebrating .taskTitle {
+  color: var(--text-muted);
+  transition: color var(--dur-slow) var(--ease-out);
+}
+
+/* Finished inside the timebox: warmer glow and a light sweep across the card. */
+.celebratingEarly {
+  box-shadow:
+    0 0 0 2px var(--glow-c),
+    0 0 56px 10px color-mix(in srgb, var(--glow-c) 35%, transparent);
+  overflow: hidden;
+}
+
+.celebratingEarly::after {
+  opacity: 1;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 45%) 50%, transparent 70%);
+  box-shadow: none;
+  transform: translateX(-100%);
+  animation: sweep 1s var(--ease-out) 150ms forwards;
+}
+
+.doneRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 30px;
+  margin-top: var(--space-2);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.celebratingEarly .doneRow {
+  color: color-mix(in srgb, var(--glow-c) 75%, var(--text));
+}
+
+.doneBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--success);
+  color: #fff;
+  animation: badge-in var(--dur-slow) var(--ease-spring);
+}
+
+.celebratingEarly .doneBadge {
+  background: var(--glow-c);
+}
+
+.doneMessage {
+  animation: rise-in var(--dur) var(--ease-out) 120ms both;
+}
+
+@keyframes done-pulse {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.025);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .stepLabel {
   font-size: var(--text-xs);
   color: var(--text-faint);
@@ -298,7 +385,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  /* Breathing room between the main Start button and the secondary row. */
+  gap: var(--space-6);
 }
 
 .secondary {
@@ -400,35 +488,62 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-7) var(--space-5);
+  border-radius: 24px;
+  background: radial-gradient(circle at 50% 0%, var(--success-soft), var(--bg-elevated) 70%);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--success) 60%, transparent),
+    0 0 64px 8px color-mix(in srgb, var(--success) 22%, transparent);
   text-align: center;
-  padding: var(--space-4) 0 var(--space-2);
-}
-
-.complete h2 {
-  font-size: var(--text-xl);
+  animation: card-in var(--dur-slow) var(--ease-spring);
 }
 
 .completeBadge {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   background: var(--success);
   color: #fff;
-  animation: badge-in var(--dur-slow) var(--ease-spring);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 50%, transparent);
+  animation:
+    badge-in var(--dur-slow) var(--ease-spring),
+    badge-ring 1.6s var(--ease-out) 400ms 2;
+}
+
+.completeHeading {
+  font-size: clamp(30px, 5vw, var(--text-3xl));
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  animation: rise-in var(--dur-slow) var(--ease-out) 150ms both;
 }
 
 .completeTitle {
   color: var(--text-muted);
+  font-size: var(--text-lg);
+  animation: rise-in var(--dur-slow) var(--ease-out) 250ms both;
+}
+
+.completeProgress {
+  width: 100%;
+  max-width: 360px;
 }
 
 .completeStats {
   font-size: var(--text-sm);
   color: var(--text-muted);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+  animation: rise-in var(--dur-slow) var(--ease-out) 350ms both;
+}
+
+@keyframes badge-ring {
+  to {
+    box-shadow: 0 0 0 22px color-mix(in srgb, var(--success) 0%, transparent);
+  }
 }
 
 /* ---- Break mode ---- */
