@@ -21,9 +21,17 @@ Other scripts:
 | `npm run preview` | Serves `dist/` locally, so you can test install and offline |
 | `npm test` | Runs the unit and integration tests once (Vitest + fake-indexeddb) |
 | `npm run test:watch` | Tests in watch mode |
+| `npm run test:e2e` | Builds the app and runs the end-to-end tests in a real browser (Playwright) |
+| `npm run test:e2e:install` | One-time download of the Chromium build Playwright uses |
 | `npm run typecheck` | TypeScript only |
 | `npm run lint` | oxlint |
 | `npm run generate-icons` | Regenerates the PWA PNG icons from `public/favicon.svg` |
+
+### End-to-end tests
+
+`e2e/` holds Playwright tests that drive the production build (`vite preview` on port 4173, started automatically) in Chromium: import, project editing, the focus flow and celebrations, keyboard behaviour, breaks, challenges and timeboxes (with a controlled clock, so 25 minutes pass instantly), stale sessions, two tabs in sync, offline use, backup export/restore, and a 390px touch layout. Every test starts with an empty database.
+
+Run `npm run test:e2e:install` once, then `npm run test:e2e`. Add `--ui` for Playwright's interactive runner, or `--repeat-each=5` to check for flakiness. When a test fails, its trace is kept in `test-results/`; open it with `npx playwright show-trace <path>`.
 
 ## Deploy
 
