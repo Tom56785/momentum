@@ -84,10 +84,19 @@ export function isStaleSession(session: Session, openSegment: Segment | undefine
   return now - openSegment.startedAt > STALE_AFTER_MS
 }
 
-/** When to end a stale segment: the last recorded activity, never before the segment began. */
-export function staleEndTime(openSegment: Segment, events: readonly Pick<AppEvent, 'ts'>[]): number {
+/** Events the app logs by itself (on load or on a timer); they are not evidence the user was working. */
+const PASSIVE_EVENTS: ReadonlySet<AppEvent['type']> = new Set([
+  'focus_entered',
+  'breadcrumb_shown',
+  'break_prompt_shown',
+  'timebox_prompt_shown',
+  'stale_session_resolved',
+])
+
+/** When to end a stale segment: the last user activity, never before the segment began. */
+export function staleEndTime(openSegment: Segment, events: readonly Pick<AppEvent, 'ts' | 'type'>[]): number {
   let last = openSegment.startedAt
-  for (const e of events) if (e.ts > last) last = e.ts
+  for (const e of events) if (e.ts > last && !PASSIVE_EVENTS.has(e.type)) last = e.ts
   return last
 }
 

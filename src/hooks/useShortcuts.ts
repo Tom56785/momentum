@@ -34,8 +34,10 @@ export function isModalOpen(): boolean {
 /**
  * Screen-level keyboard shortcuts. Ignored while typing in a text field (Escape there just
  * leaves the field) and while a modal dialog is open, which handles its own keys.
+ * Enter and Space activate a focused button as usual, unless `spaceOverridesButtons` is set
+ * (the focus screen, where Space always means start/stop).
  */
-export function useShortcuts(map: ShortcutMap, enabled = true): void {
+export function useShortcuts(map: ShortcutMap, enabled = true, options: { spaceOverridesButtons?: boolean } = {}): void {
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (e.defaultPrevented || e.repeat) return
     const name = keyName(e)
@@ -49,7 +51,8 @@ export function useShortcuts(map: ShortcutMap, enabled = true): void {
     }
     if (isModalOpen()) return
     // Enter and Space on a focused control activate that control, as usual.
-    if ((name === 'Enter' || name === 'Space') && isActivatable(e.target)) return
+    const spaceIsOurs = name === 'Space' && options.spaceOverridesButtons
+    if ((name === 'Enter' || name === 'Space') && !spaceIsOurs && isActivatable(e.target)) return
     const handler = map[name]
     if (handler) {
       e.preventDefault()

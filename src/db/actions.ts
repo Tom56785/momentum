@@ -56,10 +56,6 @@ export async function saveBreadcrumb(projectId: string, text: string): Promise<v
   })
 }
 
-export async function clearBreadcrumb(projectId: string): Promise<void> {
-  await db.projects.update(projectId, { breadcrumb: undefined })
-}
-
 // ---------------------------------------------------------------- subtasks
 
 export async function projectSubtasks(projectId: string): Promise<Subtask[]> {

@@ -123,8 +123,15 @@ describe('stale sessions', () => {
     expect(isStaleSession({ ...session, staleResolvedFor: 'w1' }, open, T0 + 9 * HOUR)).toBe(false)
   })
 
-  it('ends at the last event, never before the segment started', () => {
-    expect(staleEndTime(open, [{ ts: T0 - 5 }, { ts: T0 + 20 * MINUTE }, { ts: T0 + 3 * MINUTE }])).toBe(T0 + 20 * MINUTE)
+  it('ends at the last user activity, never before the segment started', () => {
+    const events = [
+      { ts: T0 - 5, type: 'work_started' as const },
+      { ts: T0 + 20 * MINUTE, type: 'time_revealed' as const },
+      { ts: T0 + 3 * MINUTE, type: 'parking_lot_added' as const },
+      { ts: T0 + 5 * HOUR, type: 'focus_entered' as const },
+      { ts: T0 + 5 * HOUR, type: 'break_prompt_shown' as const },
+    ]
+    expect(staleEndTime(open, events)).toBe(T0 + 20 * MINUTE)
     expect(staleEndTime(open, [])).toBe(T0)
   })
 })

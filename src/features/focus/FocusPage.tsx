@@ -6,7 +6,7 @@ import { HintBar, type Hint } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
 import { showToast } from '../../components/toast'
-import { clearBreadcrumb, completeSubtask, endChallenge, enterFocus, startChallenge, type CompleteResult } from '../../db/actions'
+import { completeSubtask, endChallenge, enterFocus, startChallenge, type CompleteResult } from '../../db/actions'
 import { dispatch } from '../../db/session'
 import { logEvent } from '../../db/store'
 import { adjacentTodo, beatTimeboxMinutes, progress, shouldPromptTimebox, shouldShowBreakPrompt, timeboxLeftMs } from '../../domain/rules'
@@ -192,6 +192,7 @@ export function FocusPage() {
       },
     },
     !busy,
+    { spaceOverridesButtons: true },
   )
 
   const hints: Hint[] = onBreak
@@ -333,10 +334,7 @@ export function FocusPage() {
               small
               icon="x"
               label="Dismiss note"
-              onClick={() => {
-                setShowBreadcrumb(false)
-                void clearBreadcrumb(project.id)
-              }}
+              onClick={() => setShowBreadcrumb(false)}
             />
           </div>
         )}
