@@ -72,3 +72,18 @@ test('the step list and step editor fit on a phone', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Step title' })).toBeVisible()
   await expectNoSidewaysScroll(page)
 })
+
+test('toasts use the screen width, with finger-sized buttons', async ({ page }) => {
+  await focusOnExample(page)
+  await page.getByRole('button', { name: /^Complete/ }).first().tap()
+  const undo = page.getByRole('button', { name: 'Undo' })
+  await expect(undo).toBeVisible()
+  const toast = page.getByRole('status').locator('> div').filter({ has: undo })
+  // Layout sizes, which the toast's entrance animation (a slight scale) doesn't affect.
+  const size = (el: HTMLElement) => ({ width: el.offsetWidth, height: el.offsetHeight })
+  // A long message spreads across the screen rather than being squeezed into a narrow column.
+  expect((await toast.evaluate(size)).width).toBeGreaterThan(page.viewportSize()!.width * 0.75)
+  expect((await undo.evaluate(size)).height).toBeGreaterThanOrEqual(40)
+  const dismiss = await toast.getByRole('button', { name: 'Dismiss' }).evaluate(size)
+  expect(Math.min(dismiss.width, dismiss.height)).toBeGreaterThanOrEqual(40)
+})

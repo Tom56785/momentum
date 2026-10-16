@@ -1,8 +1,11 @@
+/* Spans the screen (less a gutter) rather than centring with left: 50%, which would cap
+   toasts at half the screen width and squash them on phones. */
 .region {
   position: fixed;
   bottom: var(--space-7);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  padding: 0 var(--space-4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,7 +20,9 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   min-height: 40px;
-  border-radius: 999px;
+  max-width: min(560px, 100%);
+  /* Half the height: a pill on one line, a rounded box if the text wraps. */
+  border-radius: 20px;
   background: var(--text);
   color: var(--bg);
   font-size: var(--text-sm);
@@ -31,6 +36,7 @@
 }
 
 .toast button {
+  flex: none;
   color: inherit;
 }
 
@@ -54,6 +60,20 @@
   border-radius: 999px;
   padding: var(--space-1) var(--space-3);
   font-weight: 600;
+}
+
+/* Bigger, easier-to-hit actions on touch screens. */
+@media (pointer: coarse) {
+  .toast {
+    min-height: 52px;
+    border-radius: 26px;
+    font-size: var(--text-base);
+  }
+
+  .action {
+    min-height: 40px;
+    padding: var(--space-2) var(--space-4);
+  }
 }
 
 @keyframes toast-in {
