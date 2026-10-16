@@ -44,7 +44,9 @@ pnpm build
 pnpm dlx wrangler pages deploy dist
 ```
 
-**Netlify, GitHub Pages, S3 or similar:** upload the contents of `dist/`. Serve over HTTPS (required for the service worker and install prompt). The app expects to live at the domain root. To host it under a sub-path, set `base` in `vite.config.ts` and update `start_url` and `scope` in the PWA manifest.
+**GitHub Pages:** already set up. [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs lint and the unit tests, builds, and deploys on every push to `main` (or run it by hand from the Actions tab). It needs **Settings → Pages → Source** set to **GitHub Actions**. The site is served from `https://<user>.github.io/<repo>/`, so the workflow builds with `BASE_PATH=/<repo>/`.
+
+**Netlify, S3 or similar:** upload the contents of `dist/`. Serve over HTTPS (required for the service worker and install prompt). The build assumes the domain root. To host it under a sub-path, build with `BASE_PATH` set to that path with slashes at both ends, for example `BASE_PATH=/momentum/ pnpm build` (the PWA manifest's start URL and scope follow it). In Git Bash on Windows, put `MSYS_NO_PATHCONV=1` in front, or Git Bash turns the path into a Windows one.
 
 When a new version is deployed, open copies of the app show a small "An update is ready" toast with a **Reload** button.
 

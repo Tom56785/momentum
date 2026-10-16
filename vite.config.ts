@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages serves the app from /<repo>/; the deploy workflow sets BASE_PATH.
+  base: process.env.BASE_PATH ?? '/',
   build: {
     rolldownOptions: {
       output: {
@@ -31,8 +33,6 @@ export default defineConfig({
         theme_color: '#17181c',
         background_color: '#17181c',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

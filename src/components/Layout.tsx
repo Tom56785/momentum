@@ -12,7 +12,7 @@ export function Layout() {
       <GlobalTimerBar />
       <header className={styles.header}>
         <NavLink to="/" className={styles.brand} aria-label="Momentum overview">
-          <img src="/favicon.svg" alt="" width={24} height={24} />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={24} height={24} />
           <span>Momentum</span>
         </NavLink>
         <nav className={styles.nav} aria-label="Main">
