@@ -52,7 +52,7 @@ export function ProjectCard({ project, subtasks }: { project: Project; subtasks:
           )}
         </p>
         {next && (
-          <Button size="sm" variant="primary" icon="play" tabIndex={-1} onClick={() => navigate(`/focus/${project.id}`)}>
+          <Button size="sm" variant="primary" icon="play" className={styles.focusButton} tabIndex={-1} onClick={() => navigate(`/focus/${project.id}`)}>
             Focus
           </Button>
         )}

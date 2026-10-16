@@ -54,6 +54,15 @@
   z-index: 1;
 }
 
+/* A pill like "Return to focus" in the resume bar. */
+.foot > .focusButton {
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
 .key {
   flex: none;
   font-family: var(--font-mono);
