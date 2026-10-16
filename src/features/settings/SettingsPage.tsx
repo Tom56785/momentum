@@ -1,8 +1,10 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Dialog, DialogActions } from '../../components/Dialog'
 import { HintBar, type Hint } from '../../components/HintBar'
 import { showToast } from '../../components/toast'
+import { clearStats } from '../../db/actions'
 import { setAppState, updateSettings } from '../../db/store'
 import type { Settings } from '../../db/types'
 import { DAY } from '../../domain/time'
@@ -56,6 +58,13 @@ export function SettingsPage() {
       return
     }
     setRestore({ backup: parsed.backup, name: file.name })
+  }
+
+  const [confirmingClear, setConfirmingClear] = useState(false)
+  const confirmClearStats = async () => {
+    setConfirmingClear(false)
+    await clearStats()
+    showToast({ text: 'Stats cleared', tone: 'success' })
   }
 
   const confirmRestore = async () => {
@@ -144,11 +153,32 @@ export function SettingsPage() {
             </label>
           </div>
         </div>
+        <div className={styles.row}>
+          <div>
+            <p>Stats</p>
+            <p className={styles.description}>Time tracked, the history behind Today and weekly stats, and personal bests.</p>
+          </div>
+          <Button size="sm" icon="trash" onClick={() => setConfirmingClear(true)}>
+            Clear all stats
+          </Button>
+        </div>
         <p className={styles.description}>
           Everything lives only in this browser. The backup file includes all your projects, time and history, so it
           also works as raw data for weekly reports.
         </p>
       </Section>
+
+      <ConfirmDialog
+        open={confirmingClear}
+        title="Clear all stats?"
+        confirmLabel="Clear stats"
+        onConfirm={() => void confirmClearStats()}
+        onCancel={() => setConfirmingClear(false)}
+      >
+        This deletes all tracked time, the history behind Today and weekly stats, and your personal bests, and stops
+        any running timer. Projects, steps, notes, the parking lot and settings are kept. Export a backup first if you
+        might want them back.
+      </ConfirmDialog>
 
       <Dialog open={!!restore} onClose={() => setRestore(null)} title="Restore this backup?" size="narrow">
         {restore && (

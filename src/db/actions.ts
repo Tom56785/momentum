@@ -430,3 +430,18 @@ export async function parkingItemToProject(id: string): Promise<string | undefin
 }
 
 export { dispatch }
+
+// ---------------------------------------------------------------- stats
+
+/**
+ * Clears all stats: tracked time, the activity history behind the Today and weekly
+ * summaries, and personal bests. Any running timer or challenge stops, and the resume bar
+ * goes. Projects, steps (and which are done), notes, the parking lot and settings stay.
+ */
+export async function clearStats(): Promise<void> {
+  await db.transaction('rw', [db.segments, db.events, db.appState], async () => {
+    await db.segments.clear()
+    await db.events.clear()
+    await db.appState.bulkDelete(['session', 'challenge', 'personalBests'])
+  })
+}

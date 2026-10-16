@@ -142,3 +142,28 @@ test.describe('P parks a thought from any page', () => {
     await expect(page.getByLabel('Step title').first()).toHaveValue(/p$/)
   })
 })
+
+test('Clear all stats empties time and history but keeps projects', async ({ page }) => {
+  await focusOnExample(page)
+  await page.keyboard.press('Space')
+  await page.keyboard.press('Control+Enter')
+  await expect(page.getByText('1 of 6', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Keep timer running' }).click()
+  await expect(page.getByRole('link', { name: 'Return to focus' })).toBeVisible()
+
+  await openApp(page, '#/settings')
+  await page.getByRole('button', { name: 'Clear all stats' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Clear all stats?' })
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  await dialog.getByRole('button', { name: 'Clear stats' }).click()
+  await expect(page.getByText('Stats cleared')).toBeVisible()
+
+  expect(await readStore(page, 'events')).toHaveLength(0)
+  expect(await readStore(page, 'segments')).toHaveLength(0)
+  await expect(page.getByRole('link', { name: 'Return to focus' })).toHaveCount(0)
+  const steps = await readStore<{ status: string }>(page, 'subtasks')
+  expect(steps.filter((s) => s.status === 'done')).toHaveLength(1)
+  await openApp(page)
+  await expect(page.locator('[data-card]')).toHaveCount(1)
+})
