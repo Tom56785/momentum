@@ -114,9 +114,11 @@
   flex: none;
 }
 
+/* Sized for three digits (the largest value is 180). */
 .number input {
-  width: 76px;
-  text-align: right;
+  box-sizing: content-box;
+  width: 3.5ch;
+  text-align: center;
 }
 
 .unit {
