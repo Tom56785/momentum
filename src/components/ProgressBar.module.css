@@ -31,16 +31,35 @@
   background: var(--success);
 }
 
+/* A gentle highlight sweeps along the bar, then rests: a 2.4s sweep every 12s. */
 .fill::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 35%), transparent);
   transform: translateX(-100%);
-  animation: shimmer 2.4s var(--ease-out) 1;
+  animation: shimmer 12s var(--ease-out) infinite;
+}
+
+/* Finished: one last sweep, then still. */
+.complete::after {
+  animation: shimmer-once 2.4s var(--ease-out) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill::after {
+    animation: none;
+  }
 }
 
 @keyframes shimmer {
+  20%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmer-once {
   to {
     transform: translateX(100%);
   }
