@@ -151,6 +151,7 @@ export function OverviewPage() {
               ] as Hint[])
             : []),
           ['I', 'Import'],
+          ['P', 'Park thought'],
           ['?', 'All shortcuts'],
         ]}
       />

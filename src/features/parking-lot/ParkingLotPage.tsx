@@ -201,6 +201,7 @@ export function ParkingLotPage() {
                 ['D', 'Done'],
               ] as Hint[])
             : []),
+          ['P', 'Park thought'],
           ['?', 'All shortcuts'],
         ]}
       />

@@ -168,7 +168,12 @@ export function SettingsPage() {
           </>
         )}
       </Dialog>
-      <HintBar hints={[['?', 'All shortcuts']]} />
+      <HintBar
+        hints={[
+          ['P', 'Park thought'],
+          ['?', 'All shortcuts'],
+        ]}
+      />
     </div>
   )
 }

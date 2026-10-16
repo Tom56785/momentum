@@ -96,6 +96,8 @@ test.describe('P parks a thought from any page', () => {
     const [project] = await readStore<{ id: string }>(page, 'projects')
 
     await openApp(page)
+    // The shortcut is listed at the bottom of the page.
+    await expect(page.getByText('Park thought')).toBeVisible()
     await page.keyboard.press('p')
     const capture = page.getByRole('dialog', { name: 'Park a thought' })
     await expect(capture.getByLabel('Thought to park')).toBeFocused()

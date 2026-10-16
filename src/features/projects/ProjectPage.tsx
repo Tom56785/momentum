@@ -192,6 +192,7 @@ export function ProjectPage() {
         hints={[
           ...(next ? ([['F', 'Start focus']] as [string, string][]) : []),
           ['Enter', 'Add subtask'],
+          ['P', 'Park thought'],
           ['?', 'All shortcuts'],
         ]}
       />
