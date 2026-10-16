@@ -169,3 +169,44 @@ test("the resume bar's title opens the project without going back into focus", a
   // Still working: the bar's timer is untouched.
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
 })
+
+test.describe('F while the resume bar is showing', () => {
+  test.beforeEach(async ({ page }) => {
+    await focusOnExample(page)
+    await page.keyboard.press('Space')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Keep timer running' }).click()
+  })
+
+  test('goes back into focus from any page', async ({ page }) => {
+    await openApp(page, '#/settings')
+    await expect(page.getByText('Resume focus')).toBeVisible()
+    await page.keyboard.press('f')
+    await expect(page).toHaveURL(/#\/focus\//)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Read the ticket and AI summary')
+  })
+
+  test('on the overview, resumes the session; once dismissed, focuses the selected project', async ({ page }) => {
+    // A second project, selected on the overview.
+    await page.getByRole('button', { name: 'New project' }).click()
+    await page.keyboard.type('Second project')
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/#\/project\//)
+    const second = page.url().split('/project/')[1].split('?')[0]
+    await openApp(page)
+    await page.locator(`[data-card="${second}"]`).focus()
+
+    await page.keyboard.press('f')
+    await expect(page).toHaveURL(/#\/focus\//)
+    expect(page.url()).not.toContain(second)
+
+    // Stop the timer and dismiss the bar: F now goes to the selected project.
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Stop timer and exit' }).click()
+    await page.getByRole('button', { name: 'Hide timer bar' }).click()
+    await expect(page.getByRole('link', { name: 'Return to focus' })).toHaveCount(0)
+    await page.locator(`[data-card="${second}"]`).focus()
+    await page.keyboard.press('f')
+    await expect(page).toHaveURL(new RegExp(`#/focus/${second}`))
+  })
+})

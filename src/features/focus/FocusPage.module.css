@@ -15,15 +15,34 @@
   padding: var(--space-3) var(--space-4);
 }
 
-.projectTitle {
+/* Ticket key, then the project title: clear, but quieter than the step itself. */
+.projectHeading {
   flex: 1;
   min-width: 0;
-  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.ticketKey {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--text-muted);
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.projectTitle {
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
 }
 
 .topIcons {

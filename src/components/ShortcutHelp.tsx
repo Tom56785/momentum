@@ -22,7 +22,7 @@ const GROUPS: { title: string; rows: [keys: string[], action: string][] }[] = [
     rows: [
       [['↑', '↓'], 'Move between projects'],
       [['Enter'], 'Open project'],
-      [['F'], 'Start focus on the selected project'],
+      [['F'], 'Start focus on the selected project (or resume the one in the bar at the top)'],
       [['I'], 'Import (overview)'],
       [['Alt', '↑/↓'], 'Move a subtask up or down'],
     ],
@@ -39,7 +39,8 @@ const GROUPS: { title: string; rows: [keys: string[], action: string][] }[] = [
   {
     title: 'Anywhere',
     rows: [
-      [['P'], 'Park a thought (linked to the project you’re on or working on)'],
+      [['F'], 'Return to focus, while the bar at the top is showing'],
+      [['P'], 'Park a thought'],
       [['Esc'], 'Close a dialog, or leave a text field'],
       [['?'], 'Show all shortcuts'],
     ],

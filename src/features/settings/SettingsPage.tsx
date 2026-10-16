@@ -1,12 +1,12 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { Button } from '../../components/Button'
 import { Dialog, DialogActions } from '../../components/Dialog'
-import { HintBar } from '../../components/HintBar'
+import { HintBar, type Hint } from '../../components/HintBar'
 import { showToast } from '../../components/toast'
 import { setAppState, updateSettings } from '../../db/store'
 import type { Settings } from '../../db/types'
 import { DAY } from '../../domain/time'
-import { useAppState, useSettings } from '../../hooks/useData'
+import { useAppState, useResumeProjectId, useSettings } from '../../hooks/useData'
 import { useNow } from '../../hooks/useNow'
 import { downloadBackup, parseBackup, restoreBackup, type Backup } from './backup'
 import { PromptSettings } from './PromptSettings'
@@ -14,6 +14,7 @@ import styles from './SettingsPage.module.css'
 
 export function SettingsPage() {
   const settings = useSettings()
+  const resumeId = useResumeProjectId()
   const persistedAtStart = useAppState('storagePersisted')
   const [persisted, setPersisted] = useState<boolean | undefined>(undefined)
   const [restore, setRestore] = useState<{ backup: Backup; name: string } | null>(null)
@@ -170,6 +171,7 @@ export function SettingsPage() {
       </Dialog>
       <HintBar
         hints={[
+          ...(resumeId ? ([['F', 'Resume focus']] as Hint[]) : []),
           ['P', 'Park thought'],
           ['?', 'All shortcuts'],
         ]}

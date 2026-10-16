@@ -16,6 +16,7 @@ import { db } from '../../db/db'
 import type { ParkingLotItem, Project } from '../../db/types'
 import { useAutosave } from '../../hooks/useDebounced'
 import { useNow } from '../../hooks/useNow'
+import { useResumeProjectId } from '../../hooks/useData'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import styles from './ParkingLotPage.module.css'
 
@@ -30,6 +31,7 @@ function timeAgo(ts: number, now: number): string {
 
 export function ParkingLotPage() {
   const navigate = useNavigate()
+  const resumeId = useResumeProjectId()
   const [expanded, setExpanded] = useState<string | null>(null)
   const [newText, setNewText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
@@ -201,6 +203,7 @@ export function ParkingLotPage() {
                 ['D', 'Done'],
               ] as Hint[])
             : []),
+          ...(resumeId ? ([['F', 'Resume focus']] as Hint[]) : []),
           ['P', 'Park thought'],
           ['?', 'All shortcuts'],
         ]}

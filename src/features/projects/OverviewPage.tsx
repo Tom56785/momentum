@@ -6,6 +6,7 @@ import { HintBar, type Hint } from '../../components/HintBar'
 import { createProject } from '../../db/actions'
 import { db } from '../../db/db'
 import type { Subtask } from '../../db/types'
+import { useResumeProjectId } from '../../hooks/useData'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import { ImportDialog } from '../import/ImportDialog'
 import styles from './OverviewPage.module.css'
@@ -15,6 +16,7 @@ import { DoneProjects } from './DoneProjects'
 
 export function OverviewPage() {
   const navigate = useNavigate()
+  const resumeId = useResumeProjectId()
   const [importOpen, setImportOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -54,8 +56,9 @@ export function OverviewPage() {
   useShortcuts(
     {
       i: () => setImportOpen(true),
+      // Resume the session in the resume bar if it's showing; otherwise the selected project.
       f: () => {
-        const id = selectedCard()?.dataset.card
+        const id = resumeId ?? selectedCard()?.dataset.card
         if (id) navigate(`/focus/${id}`)
       },
       ArrowDown: () => moveSelection(1),
@@ -147,9 +150,10 @@ export function OverviewPage() {
           ...(active.length
             ? ([
                 ['Enter', 'Open project'],
-                ['F', 'Focus on selected'],
+                ...(resumeId ? [] : ([['F', 'Focus on selected']] as Hint[])),
               ] as Hint[])
             : []),
+          ...(resumeId ? ([['F', 'Resume focus']] as Hint[]) : []),
           ['I', 'Import'],
           ['P', 'Park thought'],
           ['?', 'All shortcuts'],

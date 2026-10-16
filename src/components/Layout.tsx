@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useMatch } from 'react-router'
+import { NavLink, Outlet, useMatch, useNavigate } from 'react-router'
 import { ParkingCapture } from '../features/parking-lot/ParkingCapture'
-import { useOpenParkingCount, useProject, useSession } from '../hooks/useData'
+import { useOpenParkingCount, useProject, useResumeProjectId, useSession } from '../hooks/useData'
 import { useShortcuts } from '../hooks/useShortcuts'
 import { GlobalTimerBar } from './GlobalTimerBar'
 import { Icon } from './Icon'
@@ -13,8 +13,15 @@ export function Layout() {
   // P parks a thought from any page (the focus screen has its own). It's linked to the
   // project on screen, or else the one with a timer session, if any.
   const [parkOpen, setParkOpen] = useState(false)
-  useShortcuts({ p: () => setParkOpen(true) })
   const onProject = useMatch('/project/:id')?.params.id
+  const onOverview = !!useMatch('/')
+
+  // While the resume bar shows, F goes back into focus from any page. The overview and project
+  // pages handle F themselves (resume, or focus the selected / open project).
+  const navigate = useNavigate()
+  const resumeId = useResumeProjectId()
+  const resume = resumeId && !onProject && !onOverview ? () => navigate(`/focus/${resumeId}`) : undefined
+  useShortcuts({ p: () => setParkOpen(true), f: resume })
   const session = useSession()
   const linkProject = useProject(onProject ?? (session.state !== 'idle' ? session.projectId : undefined))
   const navClass = ({ isActive }: { isActive: boolean }) => [styles.navLink, isActive && styles.active].filter(Boolean).join(' ')

@@ -370,7 +370,10 @@ export function FocusPage() {
   const topBar = (
     <header className={styles.top}>
       <IconButton icon="arrowLeft" label="Exit focus (Esc)" onClick={() => setExitOpen(true)} />
-      <span className={styles.projectTitle}>{project.title}</span>
+      <div className={styles.projectHeading}>
+        {project.externalKey && <span className={styles.ticketKey}>{project.externalKey}</span>}
+        <span className={styles.projectTitle}>{project.title}</span>
+      </div>
       <div className={styles.topIcons}>
         <IconButton icon="inbox" label="Park a thought (P)" onClick={() => setParkOpen(true)} />
         {fullscreen.supported && (

@@ -46,6 +46,20 @@ export function useProject(id: string | undefined) {
   return useKeyedLiveQuery(id ?? '', async () => (id ? ((await db.projects.get(id)) ?? null) : null), undefined)
 }
 
+/**
+ * The project the resume bar offers to go back to, while the bar is showing: there's a
+ * session (working, paused or on a break) with something left to work on, and it hasn't
+ * been dismissed. Undefined otherwise.
+ */
+export function useResumeProjectId(): string | undefined {
+  const session = useSession()
+  const project = useProject(session.projectId)
+  if (session.state === 'idle' || !project) return undefined
+  // Nothing left to work on (e.g. the project was just finished).
+  if (session.state === 'paused' && !session.subtaskId) return undefined
+  return project.id
+}
+
 export function useSubtasks(projectId: string | undefined) {
   return useKeyedLiveQuery(
     projectId ?? '',

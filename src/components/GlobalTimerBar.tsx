@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { dispatch } from '../db/session'
 import { workMs, formatClock } from '../domain/time'
-import { useProject, useReveal, useSegmentsFor, useSession, useSubtasks } from '../hooks/useData'
+import { useProject, useResumeProjectId, useReveal, useSegmentsFor, useSession, useSubtasks } from '../hooks/useData'
 import { useNow } from '../hooks/useNow'
 import { IconButton } from './Button'
 import styles from './GlobalTimerBar.module.css'
@@ -15,10 +15,9 @@ export function GlobalTimerBar() {
   const segments = useSegmentsFor('subtaskId', session.subtaskId)
   const reveal = useReveal()
   const now = useNow()
+  const resumeId = useResumeProjectId()
 
-  if (session.state === 'idle' || !project) return null
-  // Nothing left to work on (e.g. the project was just finished): no bar.
-  if (session.state === 'paused' && !session.subtaskId) return null
+  if (!resumeId || !project) return null
   const subtask = subtasks?.find((s) => s.id === session.subtaskId)
   const working = session.state === 'working'
   const onBreak = session.state === 'break'
