@@ -612,13 +612,6 @@
   }
 }
 
-@media (max-width: 600px) {
-  /* Just the clock on narrow screens, so it fits beside the eye. */
-  .valueSuffix {
-    display: none;
-  }
-}
-
 .neutral {
   color: var(--neutral-note);
 }

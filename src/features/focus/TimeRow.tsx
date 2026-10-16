@@ -23,12 +23,7 @@ export function TimeRow({ subtask, subtaskWorkMs, challenge, showWork, showTimer
     <div className={styles.timeRow}>
       <span className={styles.timeItem}>
         <IconButton icon={showWork ? 'eyeOff' : 'eye'} label={showWork ? 'Hide time on this step' : 'Show time on this step'} onClick={onToggleWork} />
-        {showWork && (
-          <span className={[styles.timeValue, styles.valueLeft].join(' ')}>
-            {formatClock(subtaskWorkMs)}
-            <span className={styles.valueSuffix}> on this step</span>
-          </span>
-        )}
+        {showWork && <span className={[styles.timeValue, styles.valueLeft].join(' ')}>{formatClock(subtaskWorkMs)}</span>}
       </span>
       {timeboxLeft !== undefined && (
         <Reveal
