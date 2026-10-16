@@ -94,7 +94,9 @@ test.describe('overview cards', () => {
   })
 
   test('clicking the progress bar opens the project too', async ({ page }) => {
-    await page.locator('[data-card]').getByRole('progressbar').click()
+    // A real click where the bar is (the card's link sits over it, which is the point).
+    const bar = (await page.locator('[data-card]').getByRole('progressbar').boundingBox())!
+    await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2)
     await expect(page).toHaveURL(/#\/project\//)
   })
 
