@@ -163,7 +163,10 @@ test("the resume bar's title opens the project without going back into focus", a
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Keep timer running' }).click()
   await page.goto('/#/settings')
-  await page.getByRole('link', { name: /Read the ticket and AI summary/ }).click()
+  const barLink = page.getByRole('link', { name: /Read the ticket and AI summary/ })
+  // The ticket key is shown in the bar too.
+  await expect(barLink).toContainText('SHOP-482')
+  await barLink.click()
   await expect(page).toHaveURL(/#\/project\//)
   await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
   // Still working: the bar's timer is untouched.

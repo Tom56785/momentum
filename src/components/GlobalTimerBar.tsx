@@ -29,12 +29,15 @@ export function GlobalTimerBar() {
         <span className={styles.dot} aria-hidden="true" />
         {/* The names open the project page, without going back into focus. */}
         <Link to={`/project/${project.id}`} className={styles.what} title="Open the project">
-          <span className={styles.project}>{project.title}</span>
-          {onBreak ? (
-            <span className={styles.subtask}>On a break</span>
-          ) : (
-            subtask && <span className={styles.subtask}>{subtask.title}</span>
-          )}
+          {project.externalKey && <span className={styles.ticketKey}>{project.externalKey}</span>}
+          <span className={styles.names}>
+            <span className={styles.project}>{project.title}</span>
+            {onBreak ? (
+              <span className={styles.subtask}>On a break</span>
+            ) : (
+              subtask && <span className={styles.subtask}>{subtask.title}</span>
+            )}
+          </span>
         </Link>
         <div className={styles.controls}>
           {!onBreak && (
