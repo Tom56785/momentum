@@ -21,8 +21,15 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('break prompt, snooze, timebox prompt, challenge time-up and break', async ({ page }) => {
-  // A margin past the 25-minute marks: those thresholds are exact boundaries.
-  await advance(page, 25 * MINUTE + 5_000)
+  // The challenge offer comes when 30% of the 30-min timebox (9 min) is left, at 21 min.
+  // Margins either side: the thresholds are exact boundaries.
+  await advance(page, 21 * MINUTE - 30_000)
+  await expect(page.getByText('Nearly at your timebox')).toHaveCount(0)
+  await advance(page, 30_000 + 5_000)
+  await expect(page.getByText('Nearly at your timebox')).toBeVisible()
+  await expect(page.getByText('A short break helps')).toHaveCount(0)
+
+  await advance(page, 4 * MINUTE)
   await expect(page.getByText('A short break helps')).toBeVisible()
   await expect(page.getByText('Nearly at your timebox')).toBeVisible()
 

@@ -15,6 +15,7 @@ import {
   shouldShowBreakPrompt,
   staleEndTime,
   timeboxLeftMs,
+  timeboxPromptThresholdMs,
 } from './rules'
 import { formatClock, formatDuration, HOUR, MINUTE, segmentMs, workMs } from './time'
 
@@ -80,18 +81,29 @@ describe('timeboxes', () => {
   })
 
   const subtask = { id: 's1', timeboxMinutes: 25 }
-  const base = { session: working, subtask, thresholdMinutes: 5, challengeActive: false }
+  const base = { session: working, subtask, thresholdPercent: 30, challengeActive: false }
 
-  it('prompts once when crossing the threshold', () => {
-    expect(shouldPromptTimebox({ ...base, subtaskWorkMs: 19 * MINUTE })).toBe(false)
-    expect(shouldPromptTimebox({ ...base, subtaskWorkMs: 20 * MINUTE })).toBe(true)
+  it('prompts once when crossing the threshold, a percentage of the timebox left', () => {
+    // 30% of 25 minutes is 7.5 minutes left, so 17.5 minutes in.
+    expect(shouldPromptTimebox({ ...base, subtaskWorkMs: 17 * MINUTE })).toBe(false)
+    expect(shouldPromptTimebox({ ...base, subtaskWorkMs: 17.5 * MINUTE })).toBe(true)
     const prompted = { ...working, timeboxPromptShownFor: ['s1'] }
     expect(shouldPromptTimebox({ ...base, session: prompted, subtaskWorkMs: 20 * MINUTE })).toBe(false)
   })
 
-  it('does not prompt after time is up, for tiny timeboxes, or during a challenge', () => {
+  it('scales with the timebox', () => {
+    const long = { ...base, subtask: { id: 's1', timeboxMinutes: 60 } }
+    expect(shouldPromptTimebox({ ...long, subtaskWorkMs: 41 * MINUTE })).toBe(false)
+    expect(shouldPromptTimebox({ ...long, subtaskWorkMs: 42 * MINUTE })).toBe(true)
+    const short = { ...base, subtask: { id: 's1', timeboxMinutes: 5 } }
+    expect(shouldPromptTimebox({ ...short, subtaskWorkMs: 3 * MINUTE })).toBe(false)
+    expect(shouldPromptTimebox({ ...short, subtaskWorkMs: 3.5 * MINUTE })).toBe(true)
+    expect(timeboxPromptThresholdMs(10, 30)).toBe(3 * MINUTE)
+  })
+
+  it('does not prompt after time is up, when the threshold is under a minute, or during a challenge', () => {
     expect(shouldPromptTimebox({ ...base, subtaskWorkMs: 25 * MINUTE })).toBe(false)
-    expect(shouldPromptTimebox({ ...base, subtask: { id: 's1', timeboxMinutes: 5 }, subtaskWorkMs: 1 * MINUTE })).toBe(false)
+    expect(shouldPromptTimebox({ ...base, subtask: { id: 's1', timeboxMinutes: 3 }, subtaskWorkMs: 2.5 * MINUTE })).toBe(false)
     expect(shouldPromptTimebox({ ...base, challengeActive: true, subtaskWorkMs: 21 * MINUTE })).toBe(false)
     expect(shouldPromptTimebox({ ...base, session: { ...working, state: 'paused' }, subtaskWorkMs: 21 * MINUTE })).toBe(false)
   })

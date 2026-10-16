@@ -95,7 +95,8 @@ export interface Settings {
   workIntervalMinutes: number
   breakMinutes: number
   snoozeMinutes: number
-  timeboxPromptMinutesLeft: number
+  /** Offer a challenge once this percentage of the timebox is left. */
+  timeboxPromptPercentLeft: number
   showWorkTimeByDefault: boolean
   showShortcutHints: boolean
   soundEnabled: boolean
@@ -110,7 +111,7 @@ export const DEFAULT_SETTINGS: Settings = {
   workIntervalMinutes: 25,
   breakMinutes: 5,
   snoozeMinutes: 10,
-  timeboxPromptMinutesLeft: 5,
+  timeboxPromptPercentLeft: 30,
   showWorkTimeByDefault: false,
   showShortcutHints: true,
   soundEnabled: false,

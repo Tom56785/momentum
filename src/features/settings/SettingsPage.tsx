@@ -79,7 +79,7 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Timeboxes">
-        <NumberField label="Offer a challenge when this much is left" unit="min" value={settings.timeboxPromptMinutesLeft} min={1} max={60} onChange={(v) => set({ timeboxPromptMinutesLeft: v })} />
+        <NumberField label="Offer a challenge when this much is left" unit="% of the timebox" value={settings.timeboxPromptPercentLeft} min={5} max={90} onChange={(v) => set({ timeboxPromptPercentLeft: v })} />
       </Section>
 
       <Section title="Display and sound">

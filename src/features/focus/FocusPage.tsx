@@ -25,6 +25,7 @@ import {
   shouldPromptTimebox,
   shouldShowBreakPrompt,
   timeboxLeftMs,
+  timeboxPromptThresholdMs,
 } from '../../domain/rules'
 import type { Via } from '../../domain/session'
 import type { Subtask } from '../../db/types'
@@ -147,7 +148,7 @@ export function FocusPage() {
       session,
       subtask,
       subtaskWorkMs,
-      thresholdMinutes: settings.timeboxPromptMinutesLeft,
+      thresholdPercent: settings.timeboxPromptPercentLeft,
       challengeActive: !!activeChallenge,
     })
   useEffect(() => {
@@ -438,7 +439,7 @@ export function FocusPage() {
                 size="sm"
                 variant="primary"
                 icon="flame"
-                onClick={() => void beginChallenge(beatTimeboxMinutes(subtask.timeboxMinutes, subtaskWorkMs) ?? settings.timeboxPromptMinutesLeft, 'timeboxPrompt')}
+                onClick={() => void beginChallenge(beatTimeboxMinutes(subtask.timeboxMinutes, subtaskWorkMs) ?? Math.max(1, Math.round(timeboxPromptThresholdMs(subtask.timeboxMinutes ?? 0, settings.timeboxPromptPercentLeft) / MINUTE)), 'timeboxPrompt')}
               >
                 Start challenge
               </Button>
