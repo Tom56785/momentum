@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { showToast } from '../../components/toast'
 import { parkThought } from '../../db/actions'
@@ -6,7 +6,7 @@ import styles from './ParkingCapture.module.css'
 
 interface ParkingCaptureProps {
   open: boolean
-  /** The project the thought is linked to by default; without one it isn't linked. */
+  /** The project the thought can be linked to (with Tab or the chip); it starts unlinked. */
   projectId?: string
   projectTitle?: string
   onClose: () => void
@@ -14,7 +14,8 @@ interface ParkingCaptureProps {
 
 /**
  * Quick single-line capture for stray thoughts, without leaving what you're doing.
- * Enter saves and closes, Shift+Enter saves and stays, Esc cancels.
+ * Enter saves and closes, Shift+Enter saves and stays, Tab links or unlinks the project,
+ * Esc cancels (wherever focus is while the box is open).
  */
 export function ParkingCapture({ open, ...rest }: ParkingCaptureProps) {
   if (!open) return null
@@ -23,10 +24,13 @@ export function ParkingCapture({ open, ...rest }: ParkingCaptureProps) {
 
 function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureProps, 'open'>) {
   const [text, setText] = useState('')
-  // Linked by default whenever there is a project, including one that finishes loading after
-  // the box opens, until the chip is clicked.
-  const [linkChoice, setLinkChoice] = useState<boolean | null>(null)
-  const linked = !!projectId && (linkChoice ?? true)
+  // Not linked until asked for. A project that finishes loading after the box opens can
+  // still be linked.
+  const [linkChoice, setLinkChoice] = useState(false)
+  const linked = !!projectId && linkChoice
+  const toggleLink = () => {
+    if (projectId) setLinkChoice(!linked)
+  }
   const [parkedCount, setParkedCount] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const returnFocus = useRef<Element | null>(null)
@@ -40,6 +44,19 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
       const el = returnFocus.current
       if (el instanceof HTMLElement && document.contains(el)) el.focus()
     }
+  }, [])
+
+  // Esc closes the box wherever focus is, ahead of the page's own Esc (exit focus, go back).
+  const onWindowKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    onClose()
+  })
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onWindowKeyDown(e)
+    window.addEventListener('keydown', listener, true)
+    return () => window.removeEventListener('keydown', listener, true)
   }, [])
 
   const save = async (stayOpen: boolean) => {
@@ -73,44 +90,40 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
           placeholder="Park a thought for later…"
           aria-label="Thought to park"
           maxLength={300}
-          data-hints="Enter:Save|Shift+Enter:Save and add another|Esc:Cancel"
+          data-hints={
+            projectId
+              ? 'Enter:Save|Shift+Enter:Save and add another|Tab:Link project|Esc:Cancel'
+              : 'Enter:Save|Shift+Enter:Save and add another|Esc:Cancel'
+          }
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               void save(e.shiftKey)
-            } else if (e.key === 'Escape') {
+            } else if (e.key === 'Tab' && !e.shiftKey && projectId) {
               e.preventDefault()
-              e.stopPropagation()
-              onClose()
+              toggleLink()
             }
           }}
         />
       </div>
       <div className={styles.row}>
         {projectId && (
-          <button
-            type="button"
-            className={[styles.chip, linked && styles.chipOn].filter(Boolean).join(' ')}
-            aria-pressed={linked}
-            onClick={() => setLinkChoice(!linked)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                e.stopPropagation()
-                onClose()
-              }
-            }}
-            title={linked ? 'Linked to this project. Click for "Not related".' : 'Not related to a project. Click to link.'}
-          >
-            {linked ? (
-              <>
-                <Icon name="link" size={12} /> <span className={styles.chipText}>{projectTitle}</span>
-              </>
-            ) : (
-              'Not related'
-            )}
-          </button>
+          <span className={styles.link}>
+            <button
+              type="button"
+              className={[styles.chip, linked && styles.chipOn].filter(Boolean).join(' ')}
+              aria-pressed={linked}
+              onClick={toggleLink}
+              title={linked ? 'Linked to this project. Click or press Tab to unlink.' : 'Not linked. Click or press Tab to link to this project.'}
+            >
+              <Icon name="link" size={12} />
+              <span className={styles.chipText}>{linked ? projectTitle : `Link to ${projectTitle}`}</span>
+            </button>
+            <span className={styles.tabHint}>
+              <kbd>Tab</kbd> {linked ? 'unlink' : 'link'}
+            </span>
+          </span>
         )}
         {parkedCount > 0 && <span className={styles.count}>{parkedCount} parked</span>}
       </div>

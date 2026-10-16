@@ -6,6 +6,8 @@ test('a parked thought can be expanded and added to its project as a step', asyn
   await focusOnExample(page)
   await page.keyboard.press('p')
   await page.keyboard.type('Check logging config')
+  // Link it to the project (thoughts start unlinked).
+  await page.keyboard.press('Tab')
   await page.keyboard.press('Enter')
   await expect(page.getByText('Parked')).toBeVisible()
 
@@ -91,7 +93,7 @@ test('export backup, then restore it over newer data, settings and prompt includ
 test.describe('P parks a thought from any page', () => {
   type Parked = { text: string; projectId?: string }
 
-  test('on the overview, unlinked; on a project page, linked to that project', async ({ page }) => {
+  test('on the overview, unlinked; on a project page, Tab links it to that project', async ({ page }) => {
     await importExample(page)
     const [project] = await readStore<{ id: string }>(page, 'projects')
 
@@ -108,8 +110,16 @@ test.describe('P parks a thought from any page', () => {
     await page.goto(`/#/project/${project.id}`)
     await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
     await page.keyboard.press('p')
-    await expect(capture.getByRole('button', { name: /Fix duplicate emails/ })).toHaveAttribute('aria-pressed', 'true')
-    await page.keyboard.type('Ask payments about retries')
+    // Unlinked to start with; Tab links it, and the box says so.
+    const chip = capture.getByRole('button', { name: /Fix duplicate emails/ })
+    await expect(chip).toHaveAttribute('aria-pressed', 'false')
+    await expect(chip).toContainText('Link to Fix duplicate emails')
+    await expect(capture.getByText('Tab')).toBeVisible()
+    await page.keyboard.type('Ask payments')
+    await page.keyboard.press('Tab')
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
+    await expect(capture.getByLabel('Thought to park')).toBeFocused()
+    await page.keyboard.type(' about retries')
     await page.keyboard.press('Enter')
     await expect(capture).toHaveCount(0)
 
@@ -119,21 +129,46 @@ test.describe('P parks a thought from any page', () => {
     expect(parked.find((p) => p.text === 'Ask payments about retries')?.projectId).toBe(project.id)
   })
 
-  test('elsewhere during a session, linked to the project being worked on', async ({ page }) => {
+  test('elsewhere during a session, Tab links it to the project being worked on', async ({ page }) => {
     await focusOnExample(page)
     await page.keyboard.press('Space')
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Keep timer running' }).click()
     await openApp(page, '#/settings')
     await page.keyboard.press('p')
-    // The box shows which project the thought will be linked to.
+    // The box offers the project being worked on.
     const capture = page.getByRole('dialog', { name: 'Park a thought' })
-    await expect(capture.getByRole('button', { name: /Fix duplicate emails/ })).toHaveAttribute('aria-pressed', 'true')
+    const chip = capture.getByRole('button', { name: /Fix duplicate emails/ })
+    await expect(chip).toHaveAttribute('aria-pressed', 'false')
+    await page.keyboard.press('Tab')
+    await expect(chip).toHaveAttribute('aria-pressed', 'true')
     await page.keyboard.type('Check the logging config')
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await readStore<Parked>(page, 'parkingLot')).length).toBe(1)
     const [project] = await readStore<{ id: string }>(page, 'projects')
     expect((await readStore<Parked>(page, 'parkingLot'))[0].projectId).toBe(project.id)
+  })
+
+  test('Esc closes the box even when focus has moved away, without the page acting on it', async ({ page }) => {
+    await focusOnExample(page)
+    await page.keyboard.press('p')
+    const capture = page.getByRole('dialog', { name: 'Park a thought' })
+    await expect(capture).toBeVisible()
+    // Click away from the box onto the page.
+    await page.getByRole('heading', { level: 1 }).click()
+    await expect(capture.getByLabel('Thought to park')).not.toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(capture).toHaveCount(0)
+    // Still in focus: Esc didn't open the exit dialog.
+    await expect(page.getByLabel(/Note to future self/)).toHaveCount(0)
+    await expect(page).toHaveURL(/#\/focus\//)
+
+    // On the overview too, where Esc would otherwise do nothing harmful but should still close it.
+    await openApp(page)
+    await page.keyboard.press('p')
+    await page.getByRole('heading', { name: 'Projects' }).click()
+    await page.keyboard.press('Escape')
+    await expect(capture).toHaveCount(0)
   })
 
   test('typing p in a text field types it instead', async ({ page }) => {
