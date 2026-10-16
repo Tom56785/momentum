@@ -1,28 +1,34 @@
+/* A clear invitation back into the task: tinted, with the step title up front. */
 .bar {
   position: sticky;
   top: 0;
   z-index: 20;
   min-height: var(--timer-bar-height);
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-elevated));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
   font-size: var(--text-sm);
   animation: rise-in var(--dur) var(--ease-out);
+}
+
+.working {
+  background: color-mix(in srgb, var(--success) 10%, var(--bg-elevated));
+  border-bottom-color: color-mix(in srgb, var(--success) 30%, var(--border));
 }
 
 .inner {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  max-width: 1040px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: var(--space-1) var(--space-5);
+  padding: var(--space-2) var(--space-5);
   min-height: var(--timer-bar-height);
 }
 
 .dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--text-faint);
 }
@@ -36,24 +42,26 @@
   background: var(--glow-b);
 }
 
+/* Project name small on top, the step itself larger underneath. */
 .what {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+  flex-direction: column;
   min-width: 0;
   flex: 1;
+  line-height: 1.3;
 }
 
 .project {
   color: var(--text-muted);
+  font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 30%;
 }
 
 .subtask {
-  font-weight: 550;
+  font-size: var(--text-base);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -81,12 +89,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 36px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--bg-elevated);
   border-radius: 999px;
-  padding: 3px var(--space-3);
+  padding: 0 var(--space-4);
   font-size: var(--text-sm);
-  font-weight: 550;
+  font-weight: 600;
   transition: background-color var(--dur-fast);
 }
 
@@ -99,8 +108,22 @@
 }
 
 .returnLink {
-  font-weight: 550;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
   white-space: nowrap;
+  transition: background-color var(--dur-fast);
+}
+
+.returnLink:hover {
+  background: var(--accent-hover);
+  text-decoration: none;
 }
 
 @keyframes breathe {
@@ -115,12 +138,25 @@
   }
 }
 
+/* Phones: the step gets its own line, with the controls underneath. */
 @media (max-width: 600px) {
   .inner {
-    padding: var(--space-1) var(--space-3);
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .what {
+    flex-basis: calc(100% - 10px - var(--space-2));
   }
 
   .project {
     display: none;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: flex-end;
   }
 }

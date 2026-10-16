@@ -7,7 +7,7 @@ import { IconButton } from './Button'
 import styles from './GlobalTimerBar.module.css'
 import { Icon } from './Icon'
 
-/** Slim "outside focus" control for the work timer, shown once a project has been worked on. */
+/** "Outside focus" control for the work timer, shown once a project has been worked on. */
 export function GlobalTimerBar() {
   const session = useSession()
   const project = useProject(session.projectId)
@@ -50,7 +50,7 @@ export function GlobalTimerBar() {
           )}
           {onBreak ? (
             <button type="button" className={styles.toggle} onClick={() => void dispatch({ type: 'resume' }, 'globalBar')}>
-              <Icon name="play" size={14} /> Resume
+              <Icon name="play" size={16} /> Resume
             </button>
           ) : (
             <button
@@ -60,11 +60,11 @@ export function GlobalTimerBar() {
               onClick={() => void dispatch({ type: working ? 'stop' : 'start' }, 'globalBar')}
               aria-pressed={working}
             >
-              <Icon name={working ? 'pause' : 'play'} size={14} /> {working ? 'Pause' : 'Start'}
+              <Icon name={working ? 'pause' : 'play'} size={16} /> {working ? 'Pause' : 'Start'}
             </button>
           )}
           <Link to={`/focus/${project.id}`} className={styles.returnLink}>
-            Return to focus
+            Return to focus <Icon name="arrowRight" size={16} />
           </Link>
           {session.state === 'paused' && (
             <IconButton small icon="x" label="Hide timer bar" onClick={() => void dispatch({ type: 'clear' }, 'globalBar')} />

@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { AutoField } from '../../components/AutoField'
 import { Button } from '../../components/Button'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { HintBar } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { NotFound } from '../../components/NotFound'
@@ -25,6 +26,7 @@ export function ProjectPage() {
   const project = useProject(id)
   const subtasks = useSubtasks(id)
   const addInputRef = useRef<HTMLInputElement>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const totalWorkMs = useLiveQuery(
     async () => (id ? workMs(await db.segments.where('projectId').equals(id).toArray(), Date.now()) : 0),
     [id, project?.status],
@@ -61,7 +63,7 @@ export function ProjectPage() {
   }
 
   const remove = async () => {
-    if (!window.confirm(`Delete "${project.title}" and its ${total} steps? Time already logged stays in your history.`)) return
+    setConfirmingDelete(false)
     await deleteProject(project.id)
     navigate('/')
   }
@@ -168,12 +170,23 @@ export function ProjectPage() {
             >
               Export JSON
             </Button>
-            <Button size="sm" variant="ghost" icon="trash" onClick={() => void remove()}>
+            <Button size="sm" variant="ghost" icon="trash" onClick={() => setConfirmingDelete(true)}>
               Delete
             </Button>
           </div>
         </aside>
       </div>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this project?"
+        confirmLabel="Delete project"
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmingDelete(false)}
+      >
+        <strong>{project.title}</strong> and its {total} {total === 1 ? 'step' : 'steps'} will be deleted. Time already logged
+        stays in your history.
+      </ConfirmDialog>
 
       <HintBar
         hints={[

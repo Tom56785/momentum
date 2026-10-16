@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
 import { IconButton } from '../../components/Button'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { celebrateBig, celebrateEarly, celebrateSmall } from '../../components/celebrate'
 import { Icon } from '../../components/Icon'
 import { TimeboxPicker } from '../../components/TimeboxPicker'
@@ -160,8 +161,10 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
     }
   }
 
+  // Steps with notes from focus ask first; others go straight away.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const remove = async () => {
-    if (subtask.notes.trim() && !window.confirm(`Delete "${subtask.title}" and its notes?`)) return
+    setConfirmingDelete(false)
     await deleteSubtask(subtask.id)
   }
 
@@ -290,7 +293,12 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
               disabled={index === count - 1}
               onClick={() => onMove(index + 1)}
             />
-            <IconButton small icon="trash" label="Delete step" onClick={() => void remove()} />
+            <IconButton
+              small
+              icon="trash"
+              label="Delete step"
+              onClick={() => (subtask.notes.trim() ? setConfirmingDelete(true) : void remove())}
+            />
           </div>
           <textarea
             className="textarea"
@@ -309,6 +317,15 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this step?"
+        confirmLabel="Delete step"
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmingDelete(false)}
+      >
+        <strong>{subtask.title}</strong> has notes from focus. They'll be deleted with it.
+      </ConfirmDialog>
     </li>
   )
 }

@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { ALL_TABLES, db } from '../../db/db'
-import { updateSettings } from '../../db/store'
+import { settingsFromRows, updateSettings } from '../../db/store'
+import { AI_PROMPT_TEMPLATE } from '../import/importSchema'
 import { formatPath } from '../import/parseImport'
-import { PHASES, type AppEvent } from '../../db/types'
+import { DEFAULT_SETTINGS, PHASES, type AppEvent } from '../../db/types'
 
 const projectRow = z.object({
   id: z.string(),
@@ -83,6 +84,36 @@ export const backupSchema = z.object({
 
 export type Backup = z.infer<typeof backupSchema>
 
+type SettingRow = { key: string; value: unknown }
+
+/**
+ * Every setting with the value in effect, defaults included, plus the AI prompt (the
+ * built-in one if it hasn't been edited). The database only stores changed settings, but
+ * the file should show them all.
+ */
+function settingsForBackup(rows: SettingRow[]): SettingRow[] {
+  const settings = settingsFromRows(rows)
+  const all = { ...settings, aiPromptTemplate: settings.aiPromptTemplate ?? AI_PROMPT_TEMPLATE }
+  return Object.entries(all)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => ({ key, value }))
+}
+
+/**
+ * The settings rows to store on restore: known settings with the right type, leaving out
+ * any that just repeat a default. Those keep following the default, so an improved built-in
+ * AI prompt still reaches someone who never edited it.
+ */
+function settingsToStore(rows: SettingRow[]): SettingRow[] {
+  return rows.filter(({ key, value }) => {
+    if (key === 'aiPromptTemplate') return typeof value === 'string' && value !== AI_PROMPT_TEMPLATE
+    if (key === 'lastBackupAt') return typeof value === 'number'
+    if (!(key in DEFAULT_SETTINGS)) return false
+    const fallback = DEFAULT_SETTINGS[key as keyof typeof DEFAULT_SETTINGS]
+    return typeof value === typeof fallback && value !== fallback
+  })
+}
+
 export async function createBackup(now = Date.now()): Promise<Backup> {
   return db.transaction('r', ALL_TABLES.map((t) => db.table(t)), async () => ({
     format: 'momentum-backup' as const,
@@ -94,7 +125,7 @@ export async function createBackup(now = Date.now()): Promise<Backup> {
       segments: await db.segments.toArray(),
       events: await db.events.toArray(),
       parkingLot: await db.parkingLot.toArray(),
-      settings: await db.settings.toArray(),
+      settings: settingsForBackup(await db.settings.toArray()),
       appState: await db.appState.toArray(),
     },
   }))
@@ -134,7 +165,7 @@ export function parseBackup(text: string): ParsedBackup {
   return { ok: true, backup: result.data }
 }
 
-/** Replaces all data with the backup, atomically. */
+/** Replaces all data, settings and the AI prompt with the backup's, atomically. */
 export async function restoreBackup(backup: Backup): Promise<void> {
   const t = backup.tables
   await db.transaction('rw', ALL_TABLES.map((name) => db.table(name)), async () => {
@@ -144,7 +175,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     await db.segments.bulkAdd(t.segments)
     await db.events.bulkAdd(t.events as AppEvent[])
     await db.parkingLot.bulkAdd(t.parkingLot)
-    await db.settings.bulkAdd(t.settings)
+    await db.settings.bulkAdd(settingsToStore(t.settings))
     await db.appState.bulkAdd(t.appState)
   })
 }

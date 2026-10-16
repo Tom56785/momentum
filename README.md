@@ -78,7 +78,7 @@ Press `?` anywhere to see every shortcut.
 
 ### Your data
 
-All data lives in this browser's IndexedDB. On first run Momentum asks the browser to make storage persistent; Settings shows whether it agreed. Use **Export backup** regularly (Settings reminds you after 14 days). The backup is one JSON file containing every table, so it also serves as raw data for future reports. **Restore backup** validates the file and replaces all data after one confirmation.
+All data lives in this browser's IndexedDB. On first run Momentum asks the browser to make storage persistent; Settings shows whether it agreed. Use **Export backup** regularly (Settings reminds you after 14 days). The backup is one JSON file containing every table, so it also serves as raw data for future reports. It lists every setting with its value (defaults included) and the AI prompt (the built-in one if you haven't edited it). **Restore backup** validates the file and replaces all data, settings and the prompt after one confirmation. Values that match a built-in default keep following it, so an improved default prompt still reaches you.
 
 ## Project layout
 

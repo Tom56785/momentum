@@ -155,7 +155,7 @@ export function SettingsPage() {
             <p>
               This replaces everything in Momentum with <strong>{restore.name}</strong> (
               {restore.backup.tables.projects.length} projects, from{' '}
-              {new Date(restore.backup.exportedAt).toLocaleDateString()}). Current data will be lost.
+              {new Date(restore.backup.exportedAt).toLocaleDateString()}), including its settings and AI prompt. Current data will be lost.
             </p>
             <DialogActions>
               <Button variant="ghost" onClick={() => setRestore(null)}>

@@ -114,3 +114,55 @@ test.describe('long step titles', () => {
     await expect(title).toHaveValue(long)
   })
 })
+
+test.describe('deleting asks in an app dialog, never a browser one', () => {
+  test.beforeEach(async ({ page }) => {
+    page.on('dialog', (d) => {
+      throw new Error(`Unexpected browser dialog: ${d.message()}`)
+    })
+    await importExample(page)
+  })
+
+  test('deleting a project: Cancel keeps it, Delete project removes it', async ({ page }) => {
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete this project?' })
+    await expect(dialog).toContainText('Fix duplicate emails on order confirmation')
+    // Cancel has focus, so a stray Enter doesn't delete.
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await expect(page).toHaveURL(/#\/project\//)
+
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await page.getByRole('button', { name: 'Delete project' }).click()
+    await expect(page).toHaveURL(/#\/$/)
+    expect(await readStore(page, 'projects')).toHaveLength(0)
+  })
+
+  test('a step with notes asks first; one without goes straight away', async ({ page }) => {
+    const firstTitle = await page.getByLabel('Step title').first().inputValue()
+    // Give the first step some notes from focus.
+    await page.getByRole('button', { name: 'Start focus' }).click()
+    await page.getByPlaceholder('Notes for this step… (N)').fill('Retry header is X-Webhook-Retry')
+    await expect
+      .poll(async () => (await readStore<{ notes: string }>(page, 'subtasks')).some((s) => s.notes.includes('X-Webhook-Retry')))
+      .toBe(true)
+    await page.goBack()
+    await expect(page.getByLabel('Step title')).toHaveCount(6)
+
+    // The second step has no notes: deleted without asking.
+    await page.getByRole('button', { name: 'Show step details' }).nth(1).click()
+    await page.getByRole('button', { name: 'Delete step' }).click()
+    await expect(page.getByLabel('Step title')).toHaveCount(5)
+
+    await page.getByRole('button', { name: 'Show step details' }).first().click()
+    await page.getByRole('button', { name: 'Delete step' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete this step?' })
+    await expect(dialog).toContainText(firstTitle)
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.getByLabel('Step title')).toHaveCount(5)
+    await page.getByRole('button', { name: 'Delete step' }).click()
+    await page.getByRole('button', { name: 'Delete step' }).last().click()
+    await expect(page.getByLabel('Step title')).toHaveCount(4)
+  })
+})
