@@ -10,7 +10,6 @@ const GROUPS: { title: string; rows: [keys: string[], action: string][] }[] = [
       [['Ctrl/Cmd', 'Z'], 'Undo the step you just completed'],
       [['E'], 'Edit the current step'],
       [['B'], 'Start or end break'],
-      [['P'], 'Park a thought'],
       [['C'], 'Start challenge'],
       [['T'], 'Reveal or hide time'],
       [['N'], 'Focus the notes area'],
@@ -40,6 +39,7 @@ const GROUPS: { title: string; rows: [keys: string[], action: string][] }[] = [
   {
     title: 'Anywhere',
     rows: [
+      [['P'], 'Park a thought (linked to the project you’re on or working on)'],
       [['Esc'], 'Close a dialog, or leave a text field'],
       [['?'], 'Show all shortcuts'],
     ],

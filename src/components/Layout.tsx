@@ -1,11 +1,22 @@
-import { NavLink, Outlet } from 'react-router'
-import { useOpenParkingCount } from '../hooks/useData'
+import { useState } from 'react'
+import { NavLink, Outlet, useMatch } from 'react-router'
+import { ParkingCapture } from '../features/parking-lot/ParkingCapture'
+import { useOpenParkingCount, useProject, useSession } from '../hooks/useData'
+import { useShortcuts } from '../hooks/useShortcuts'
 import { GlobalTimerBar } from './GlobalTimerBar'
 import { Icon } from './Icon'
 import styles from './Layout.module.css'
 
 export function Layout() {
   const parked = useOpenParkingCount()
+
+  // P parks a thought from any page (the focus screen has its own). It's linked to the
+  // project on screen, or else the one with a timer session, if any.
+  const [parkOpen, setParkOpen] = useState(false)
+  useShortcuts({ p: () => setParkOpen(true) })
+  const onProject = useMatch('/project/:id')?.params.id
+  const session = useSession()
+  const linkProject = useProject(onProject ?? (session.state !== 'idle' ? session.projectId : undefined))
   const navClass = ({ isActive }: { isActive: boolean }) => [styles.navLink, isActive && styles.active].filter(Boolean).join(' ')
   return (
     <div className={styles.shell}>
@@ -35,6 +46,14 @@ export function Layout() {
       <main className={styles.main}>
         <Outlet />
       </main>
+      <ParkingCapture
+        // Remounted per project, so the link defaults to the right one.
+        key={linkProject?.id ?? 'none'}
+        open={parkOpen}
+        projectId={linkProject?.id}
+        projectTitle={linkProject?.title}
+        onClose={() => setParkOpen(false)}
+      />
     </div>
   )
 }

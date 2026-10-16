@@ -87,3 +87,56 @@ test('export backup, then restore it over newer data, settings and prompt includ
   await expect(page.getByLabel('Break length')).toHaveValue('7')
   await expect(page.getByLabel('AI import prompt template')).toHaveValue('Backed-up prompt\n{{SCHEMA}}')
 })
+
+test.describe('P parks a thought from any page', () => {
+  type Parked = { text: string; projectId?: string }
+
+  test('on the overview, unlinked; on a project page, linked to that project', async ({ page }) => {
+    await importExample(page)
+    const [project] = await readStore<{ id: string }>(page, 'projects')
+
+    await openApp(page)
+    await page.keyboard.press('p')
+    const capture = page.getByRole('dialog', { name: 'Park a thought' })
+    await expect(capture.getByLabel('Thought to park')).toBeFocused()
+    await page.keyboard.type('Book the dentist')
+    await page.keyboard.press('Enter')
+    await expect(capture).toHaveCount(0)
+
+    await page.goto(`/#/project/${project.id}`)
+    await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
+    await page.keyboard.press('p')
+    await expect(capture.getByRole('button', { name: /Fix duplicate emails/ })).toHaveAttribute('aria-pressed', 'true')
+    await page.keyboard.type('Ask payments about retries')
+    await page.keyboard.press('Enter')
+    await expect(capture).toHaveCount(0)
+
+    await expect.poll(async () => (await readStore<Parked>(page, 'parkingLot')).length).toBe(2)
+    const parked = await readStore<Parked>(page, 'parkingLot')
+    expect(parked.find((p) => p.text === 'Book the dentist')?.projectId).toBeUndefined()
+    expect(parked.find((p) => p.text === 'Ask payments about retries')?.projectId).toBe(project.id)
+  })
+
+  test('elsewhere during a session, linked to the project being worked on', async ({ page }) => {
+    await focusOnExample(page)
+    await page.keyboard.press('Space')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Keep timer running' }).click()
+    await openApp(page, '#/settings')
+    await page.keyboard.press('p')
+    await page.keyboard.type('Check the logging config')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await readStore<Parked>(page, 'parkingLot')).length).toBe(1)
+    const [project] = await readStore<{ id: string }>(page, 'projects')
+    expect((await readStore<Parked>(page, 'parkingLot'))[0].projectId).toBe(project.id)
+  })
+
+  test('typing p in a text field types it instead', async ({ page }) => {
+    await importExample(page)
+    await page.getByLabel('Step title').first().click()
+    await page.keyboard.press('End')
+    await page.keyboard.type('p')
+    await expect(page.getByRole('dialog', { name: 'Park a thought' })).toHaveCount(0)
+    await expect(page.getByLabel('Step title').first()).toHaveValue(/p$/)
+  })
+})

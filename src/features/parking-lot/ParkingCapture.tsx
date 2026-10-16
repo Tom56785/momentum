@@ -6,13 +6,14 @@ import styles from './ParkingCapture.module.css'
 
 interface ParkingCaptureProps {
   open: boolean
-  projectId: string
-  projectTitle: string
+  /** The project the thought is linked to by default; without one it isn't linked. */
+  projectId?: string
+  projectTitle?: string
   onClose: () => void
 }
 
 /**
- * Quick single-line capture for stray thoughts, without leaving focus.
+ * Quick single-line capture for stray thoughts, without leaving what you're doing.
  * Enter saves and closes, Shift+Enter saves and stays, Esc cancels.
  */
 export function ParkingCapture({ open, ...rest }: ParkingCaptureProps) {
@@ -22,7 +23,7 @@ export function ParkingCapture({ open, ...rest }: ParkingCaptureProps) {
 
 function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureProps, 'open'>) {
   const [text, setText] = useState('')
-  const [linked, setLinked] = useState(true)
+  const [linked, setLinked] = useState(!!projectId)
   const [parkedCount, setParkedCount] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const returnFocus = useRef<Element | null>(null)
@@ -84,28 +85,30 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
         />
       </div>
       <div className={styles.row}>
-        <button
-          type="button"
-          className={[styles.chip, linked && styles.chipOn].filter(Boolean).join(' ')}
-          aria-pressed={linked}
-          onClick={() => setLinked(!linked)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.preventDefault()
-              e.stopPropagation()
-              onClose()
-            }
-          }}
-          title={linked ? 'Linked to this project. Click for "Not related".' : 'Not related to a project. Click to link.'}
-        >
-          {linked ? (
-            <>
-              <Icon name="link" size={12} /> <span className={styles.chipText}>{projectTitle}</span>
-            </>
-          ) : (
-            'Not related'
-          )}
-        </button>
+        {projectId && (
+          <button
+            type="button"
+            className={[styles.chip, linked && styles.chipOn].filter(Boolean).join(' ')}
+            aria-pressed={linked}
+            onClick={() => setLinked(!linked)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                e.stopPropagation()
+                onClose()
+              }
+            }}
+            title={linked ? 'Linked to this project. Click for "Not related".' : 'Not related to a project. Click to link.'}
+          >
+            {linked ? (
+              <>
+                <Icon name="link" size={12} /> <span className={styles.chipText}>{projectTitle}</span>
+              </>
+            ) : (
+              'Not related'
+            )}
+          </button>
+        )}
         {parkedCount > 0 && <span className={styles.count}>{parkedCount} parked</span>}
       </div>
     </div>
