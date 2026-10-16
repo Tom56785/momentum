@@ -101,6 +101,12 @@ body {
   padding: 0;
 }
 
+/* Reserve the scrollbar's space on every page, so long pages (Settings) don't sit further
+   left than short ones when a classic scrollbar appears. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -115,6 +121,14 @@ body {
 #root {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Page titles take the height of the buttons beside them on the overview, so the title
+   sits at the same height on every page. */
+.page-title {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
 }
 
 h1,
@@ -209,6 +223,18 @@ kbd {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* No up/down arrows on number fields: they crowd the value. The arrow keys still work. */
+.input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.input[type='number']::-webkit-inner-spin-button,
+.input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .textarea {

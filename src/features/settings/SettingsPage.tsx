@@ -69,7 +69,7 @@ export function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Settings</h1>
+      <h1 className={`page-title ${styles.heading}`}>Settings</h1>
 
       <Section title="Breaks">
         <Toggle label="Break prompts" checked={settings.breakPromptsEnabled} onChange={(v) => set({ breakPromptsEnabled: v })} />
@@ -79,7 +79,7 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Timeboxes">
-        <NumberField label="Offer a challenge when this much is left" unit="% of the timebox" value={settings.timeboxPromptPercentLeft} min={5} max={90} onChange={(v) => set({ timeboxPromptPercentLeft: v })} />
+        <NumberField label="Offer a challenge with this much of the timebox left" unit="%" value={settings.timeboxPromptPercentLeft} min={5} max={90} onChange={(v) => set({ timeboxPromptPercentLeft: v })} />
       </Section>
 
       <Section title="Display and sound">

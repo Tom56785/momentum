@@ -104,7 +104,7 @@ export function ParkingLotPage() {
   return (
     <div className={styles.page}>
       <div className={styles.top}>
-        <h1 className={styles.heading}>Parking lot</h1>
+        <h1 className={`page-title ${styles.heading}`}>Parking lot</h1>
         <span className={styles.count}>{open.length} open</span>
       </div>
 

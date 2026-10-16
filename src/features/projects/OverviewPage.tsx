@@ -95,7 +95,7 @@ export function OverviewPage() {
   return (
     <div className={styles.page}>
       <div className={styles.top}>
-        <h1 className={styles.heading}>Projects</h1>
+        <h1 className={`page-title ${styles.heading}`}>Projects</h1>
         <div className={styles.actions}>
           {creating ? (
             <input
