@@ -213,3 +213,24 @@ test.describe('F while the resume bar is showing', () => {
     await expect(page).toHaveURL(new RegExp(`#/focus/${second}`))
   })
 })
+
+test('Escape in the exit note closes the dialog in one press and stays in focus', async ({ page }) => {
+  await focusOnExample(page)
+  await page.keyboard.press('Escape')
+  const note = page.getByLabel(/Note to future self/)
+  await expect(note).toBeFocused()
+  await page.keyboard.type('Not this time')
+  await page.keyboard.press('Escape')
+  await expect(note).toHaveCount(0)
+  await expect(page).toHaveURL(/#\/focus\//)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Read the ticket and AI summary')
+})
+
+test('Escape in the import box closes the import dialog in one press', async ({ page }) => {
+  await openApp(page)
+  await page.keyboard.press('i')
+  const dialog = page.locator('dialog')
+  await dialog.locator('textarea').first().click()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+})

@@ -23,6 +23,25 @@ describe('useShortcuts', () => {
     expect(b).not.toHaveBeenCalled()
   })
 
+  it('Escape in a field leaves the field', () => {
+    setup('<input id="t" />')
+    const field = document.getElementById('t')!
+    field.focus()
+    const allowed = fireEvent.keyDown(field, { key: 'Escape' })
+    expect(document.activeElement).not.toBe(field)
+    expect(allowed).toBe(false)
+  })
+
+  it('leaves Escape in a dialog field to the dialog, so one press closes it', () => {
+    setup('<dialog open><textarea id="t"></textarea></dialog>')
+    const field = document.getElementById('t')!
+    field.focus()
+    const allowed = fireEvent.keyDown(field, { key: 'Escape' })
+    expect(document.activeElement).toBe(field)
+    // Not prevented, so the browser's own Escape (closing the dialog) still happens.
+    expect(allowed).toBe(true)
+  })
+
   it('leaves Space to a focused button by default', () => {
     const { space } = setup('<button id="x">x</button>')
     fireEvent.keyDown(document.getElementById('x')!, { key: ' ' })

@@ -43,6 +43,9 @@ export function useShortcuts(map: ShortcutMap, enabled = true, options: { spaceO
     if (e.defaultPrevented || e.repeat) return
     const name = keyName(e)
     if (!name) return
+    // An open dialog handles its own keys. Checked first, so Escape in one of its fields
+    // closes the dialog in one press instead of just leaving the field.
+    if (isModalOpen()) return
     if (isTypingTarget(e.target)) {
       if (name === 'Escape' && e.target instanceof HTMLElement) {
         e.preventDefault()
@@ -50,7 +53,6 @@ export function useShortcuts(map: ShortcutMap, enabled = true, options: { spaceO
       }
       return
     }
-    if (isModalOpen()) return
     // Enter and Space on a focused control activate that control, as usual.
     // Menus and banners mark themselves data-own-keys so Space still picks their buttons.
     const spaceIsOurs =
