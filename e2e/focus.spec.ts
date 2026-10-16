@@ -148,3 +148,16 @@ test('the note left on exit stays on the focus screen until cleared', async ({ p
   await expect(workButton(page, 'Pause')).toBeVisible()
   await expect(note).toHaveCount(0)
 })
+
+test("the resume bar's title opens the project without going back into focus", async ({ page }) => {
+  await focusOnExample(page)
+  await page.keyboard.press('Space')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Keep timer running' }).click()
+  await page.goto('/#/settings')
+  await page.getByRole('link', { name: /Read the ticket and AI summary/ }).click()
+  await expect(page).toHaveURL(/#\/project\//)
+  await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
+  // Still working: the bar's timer is untouched.
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+})

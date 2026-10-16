@@ -28,14 +28,15 @@ export function GlobalTimerBar() {
     <div className={[styles.bar, working && styles.working, onBreak && styles.onBreak].filter(Boolean).join(' ')}>
       <div className={styles.inner}>
         <span className={styles.dot} aria-hidden="true" />
-        <div className={styles.what}>
+        {/* The names open the project page, without going back into focus. */}
+        <Link to={`/project/${project.id}`} className={styles.what} title="Open the project">
           <span className={styles.project}>{project.title}</span>
           {onBreak ? (
             <span className={styles.subtask}>On a break</span>
           ) : (
             subtask && <span className={styles.subtask}>{subtask.title}</span>
           )}
-        </div>
+        </Link>
         <div className={styles.controls}>
           {!onBreak && (
             <span className={styles.time}>

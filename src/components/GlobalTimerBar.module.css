@@ -49,6 +49,16 @@
   min-width: 0;
   flex: 1;
   line-height: 1.3;
+  color: var(--text);
+}
+
+.what:hover {
+  text-decoration: none;
+}
+
+.what:hover .project,
+.what:hover .subtask {
+  text-decoration: underline;
 }
 
 .project {
