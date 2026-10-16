@@ -93,6 +93,11 @@ test.describe('overview cards', () => {
     await expect(page).toHaveURL(/#\/project\//)
   })
 
+  test('clicking the progress bar opens the project too', async ({ page }) => {
+    await page.locator('[data-card]').getByRole('progressbar').click()
+    await expect(page).toHaveURL(/#\/project\//)
+  })
+
   test("the card's Focus button still opens focus", async ({ page }) => {
     await page.locator('[data-card]').getByRole('button', { name: 'Focus' }).click()
     await expect(page).toHaveURL(/#\/focus\//)

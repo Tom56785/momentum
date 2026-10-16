@@ -40,18 +40,20 @@
   line-height: 1.35;
 }
 
-/* The title link covers the whole card, so a click anywhere opens the project. */
+/* The title link covers the whole card, so a click anywhere opens the project. Layered
+   above the card's contents (the progress bar is positioned, so it would sit on top). */
 .title::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   border-radius: inherit;
 }
 
 /* The Focus button sits above the link's cover, so it still gets its own clicks. */
 .foot > button {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* A pill like "Return to focus" in the resume bar. */
