@@ -25,6 +25,12 @@
   gap: var(--space-4);
 }
 
+/* A pill, like the other Focus buttons. */
+.titleRow .startFocus {
+  flex: none;
+  border-radius: 999px;
+}
+
 .titleField {
   flex: 1;
   min-width: 0;

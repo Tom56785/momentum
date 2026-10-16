@@ -449,17 +449,6 @@ export function FocusPage() {
           </div>
         )}
 
-        {project.breadcrumb && !completed && (
-          <div className={styles.breadcrumb} role="note" aria-label="Your note from last time">
-            <Icon name="note" size={16} />
-            <div>
-              <span className={styles.breadcrumbLabel}>Last time you said</span>
-              <p>{project.breadcrumb.text}</p>
-            </div>
-            <IconButton small icon="x" label="Clear note" onClick={() => void clearBreadcrumb()} />
-          </div>
-        )}
-
         {completed ? (
           <ProjectComplete
             title={project.title}
@@ -630,6 +619,20 @@ export function FocusPage() {
           )
         )}
       </main>
+
+      {/* The note from last time sits between the controls and this step's notes. */}
+      {project.breadcrumb && !completed && (
+        <div className={styles.breadcrumbSlot}>
+          <div className={styles.breadcrumb} role="note" aria-label="Your note from last time">
+            <Icon name="note" size={20} />
+            <div>
+              <span className={styles.breadcrumbLabel}>Last time you said</span>
+              <p>{project.breadcrumb.text}</p>
+            </div>
+            <IconButton icon="x" label="Clear note" className={styles.breadcrumbClear} onClick={() => void clearBreadcrumb()} />
+          </div>
+        </div>
+      )}
 
       {subtask && <NotesArea key={subtask.id} subtask={subtask} textareaRef={notesRef} />}
 

@@ -111,14 +111,22 @@ test('finishing the last step shows project complete on the page, then no timer 
   await expect(page.getByRole('link', { name: 'Return to focus' })).toHaveCount(0)
 })
 
-test('hovering the hourglass keeps the time left shown until the pointer leaves', async ({ page }) => {
+test('hovering the hourglass shows the time left beside it, without moving the icons, until the pointer leaves', async ({ page }) => {
   await focusOnExample(page)
   const timeLeft = page.getByText(/min left/)
-  await page.getByRole('button', { name: /^Timebox:/ }).hover()
+  const hourglass = page.getByRole('button', { name: /^Timebox:/ })
+  const eye = page.getByRole('button', { name: 'Show time on this step' })
+  const positions = async () => [(await eye.boundingBox())?.x ?? 0, (await hourglass.boundingBox())?.x ?? 0]
+  // Let the card's entrance animation finish before measuring.
+  await page.waitForTimeout(800)
+  const before = await positions()
+  await hourglass.hover()
   await expect(timeLeft).toBeVisible()
-  // Showing the time shifts the centred row; it must not then hide itself.
   await page.waitForTimeout(500)
   await expect(timeLeft).toBeVisible()
+  // The time fades in beside the icon without moving anything.
+  const after = await positions()
+  after.forEach((x, i) => expect(Math.abs(x - before[i])).toBeLessThan(1))
   await page.mouse.move(5, 5)
   await expect(timeLeft).toHaveCount(0)
 })

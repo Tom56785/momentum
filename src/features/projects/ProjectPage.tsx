@@ -90,6 +90,7 @@ export function ProjectPage() {
               size="lg"
               icon="play"
               highlight={params.get('new') === '1' && !!next}
+              className={styles.startFocus}
               disabled={!next}
               onClick={startFocus}
             >

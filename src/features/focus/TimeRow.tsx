@@ -23,7 +23,12 @@ export function TimeRow({ subtask, subtaskWorkMs, challenge, showWork, showTimer
     <div className={styles.timeRow}>
       <span className={styles.timeItem}>
         <IconButton icon={showWork ? 'eyeOff' : 'eye'} label={showWork ? 'Hide time on this step' : 'Show time on this step'} onClick={onToggleWork} />
-        {showWork && <span className={styles.timeValue}>{formatClock(subtaskWorkMs)} on this step</span>}
+        {showWork && (
+          <span className={[styles.timeValue, styles.valueLeft].join(' ')}>
+            {formatClock(subtaskWorkMs)}
+            <span className={styles.valueSuffix}> on this step</span>
+          </span>
+        )}
       </span>
       {timeboxLeft !== undefined && (
         <Reveal
@@ -77,9 +82,7 @@ function Reveal({
     setPeek(false)
   }
   return (
-    // Hover is tracked on the icon and its value together: the row is centred, so showing the
-    // value shifts the icon sideways, and the pointer then lands on the value. Tracking the
-    // icon alone would hide the value again straight away.
+    // Hover is tracked on the icon and its value together, so moving onto the value keeps it.
     <span
       className={styles.timeItem}
       onPointerEnter={(e) => e.pointerType === 'mouse' && open()}
@@ -100,7 +103,7 @@ function Reveal({
       >
         <Icon name={icon} size={20} />
       </button>
-      <span className={[styles.timeValue, styles.revealValue, shown && styles.revealShown].filter(Boolean).join(' ')} aria-live="polite">
+      <span className={[styles.timeValue, styles.valueRight].join(' ')} aria-live="polite">
         {shown ? value : null}
       </span>
     </span>
