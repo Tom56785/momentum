@@ -31,14 +31,14 @@
   background: var(--success);
 }
 
-/* A gentle highlight sweeps along the bar, then rests: a 2.4s sweep every 12s. */
+/* A gentle highlight sweeps along the bar, then rests: a 2.4s sweep, then 3s until the next. */
 .fill::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 35%), transparent);
   transform: translateX(-100%);
-  animation: shimmer 12s var(--ease-out) infinite;
+  animation: shimmer 5.4s var(--ease-out) infinite;
 }
 
 /* Finished: one last sweep, then still. */
@@ -53,7 +53,8 @@
 }
 
 @keyframes shimmer {
-  20%,
+  /* 2.4s of the 5.4s cycle. */
+  44.4%,
   100% {
     transform: translateX(100%);
   }
