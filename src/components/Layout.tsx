@@ -54,8 +54,6 @@ export function Layout() {
         <Outlet />
       </main>
       <ParkingCapture
-        // Remounted per project, so the link defaults to the right one.
-        key={linkProject?.id ?? 'none'}
         open={parkOpen}
         projectId={linkProject?.id}
         projectTitle={linkProject?.title}

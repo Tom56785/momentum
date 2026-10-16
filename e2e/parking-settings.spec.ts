@@ -126,6 +126,9 @@ test.describe('P parks a thought from any page', () => {
     await page.getByRole('button', { name: 'Keep timer running' }).click()
     await openApp(page, '#/settings')
     await page.keyboard.press('p')
+    // The box shows which project the thought will be linked to.
+    const capture = page.getByRole('dialog', { name: 'Park a thought' })
+    await expect(capture.getByRole('button', { name: /Fix duplicate emails/ })).toHaveAttribute('aria-pressed', 'true')
     await page.keyboard.type('Check the logging config')
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await readStore<Parked>(page, 'parkingLot')).length).toBe(1)

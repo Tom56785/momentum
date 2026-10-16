@@ -23,7 +23,10 @@ export function ParkingCapture({ open, ...rest }: ParkingCaptureProps) {
 
 function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureProps, 'open'>) {
   const [text, setText] = useState('')
-  const [linked, setLinked] = useState(!!projectId)
+  // Linked by default whenever there is a project, including one that finishes loading after
+  // the box opens, until the chip is clicked.
+  const [linkChoice, setLinkChoice] = useState<boolean | null>(null)
+  const linked = !!projectId && (linkChoice ?? true)
   const [parkedCount, setParkedCount] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const returnFocus = useRef<Element | null>(null)
@@ -90,7 +93,7 @@ function CaptureInner({ projectId, projectTitle, onClose }: Omit<ParkingCaptureP
             type="button"
             className={[styles.chip, linked && styles.chipOn].filter(Boolean).join(' ')}
             aria-pressed={linked}
-            onClick={() => setLinked(!linked)}
+            onClick={() => setLinkChoice(!linked)}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 e.preventDefault()
