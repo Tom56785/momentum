@@ -5,7 +5,8 @@ import { Dialog, DialogActions } from '../../components/Dialog'
 import { Icon } from '../../components/Icon'
 import { showToast } from '../../components/toast'
 import type { Project } from '../../db/types'
-import { useSettings } from '../../hooks/useData'
+import { newTagNames } from '../../db/tags'
+import { useSettings, useTags } from '../../hooks/useData'
 import { findDuplicates, importProjects, type DuplicateChoice } from './importProjects'
 import { buildAiPrompt } from './importSchema'
 import styles from './ImportDialog.module.css'
@@ -28,7 +29,11 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
   const [showPrompt, setShowPrompt] = useState(false)
   const settings = useSettings()
   // The user's prompt from Settings, or the built-in one.
-  const prompt = buildAiPrompt(settings.aiPromptTemplate)
+  const tags = useTags()
+  const prompt = buildAiPrompt(
+    settings.aiPromptTemplate,
+    tags.map((t) => t.name),
+  )
   // Latest text, so a slow duplicate lookup for older text can't overwrite newer results.
   const latestText = useRef('')
 
@@ -184,6 +189,10 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
       )}
 
       {result.ok === true && (
+        <NewTagsNote names={newTagNames(result.doc.projects.flatMap((p) => p.subtasks.flatMap((s) => s.tags ?? [])), tags)} />
+      )}
+
+      {result.ok === true && (
         <ul className={styles.preview} aria-label="Preview">
           {result.doc.projects.map((p, i) => {
             const dup = duplicates.get(i)
@@ -230,5 +239,15 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
         </Button>
       </DialogActions>
     </Dialog>
+  )
+}
+
+/** Tags the import will create, so they don't appear unannounced in Settings. */
+function NewTagsNote({ names }: { names: string[] }) {
+  if (names.length === 0) return null
+  return (
+    <p className={styles.newTags} role="note">
+      Adds {names.length === 1 ? 'a new tag' : `${names.length} new tags`}: {names.join(', ')}
+    </p>
   )
 }

@@ -32,6 +32,17 @@ export interface Subtask {
   status: 'todo' | 'done'
   createdAt: number
   completedAt?: number
+  /** IDs of this step's tags (see Tag); undefined or empty means none. */
+  tags?: string[]
+}
+
+/** A label for steps, managed in Settings. Names are unique, ignoring case. */
+export interface Tag {
+  id: string
+  name: string
+  /** Chip colour, as #rrggbb. */
+  color: string
+  createdAt: number
 }
 
 /** One row per continuous stretch of work or break. */

@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Button } from '../../components/Button'
 import { showToast } from '../../components/toast'
 import { resetSetting, updateSettings } from '../../db/store'
+import { useTags } from '../../hooks/useData'
 import { useAutosave } from '../../hooks/useDebounced'
-import { AI_PROMPT_TEMPLATE, buildAiPrompt, SCHEMA_PLACEHOLDER } from '../import/importSchema'
+import { AI_PROMPT_TEMPLATE, buildAiPrompt, SCHEMA_PLACEHOLDER, TAGS_PLACEHOLDER } from '../import/importSchema'
 import styles from './SettingsPage.module.css'
 
 /** Saves the template, storing nothing when it matches the built-in default. */
@@ -22,7 +23,11 @@ export function PromptSettings({ template }: { template: string | undefined }) {
   const [draft, setDraft, flush] = useAutosave(stored, saveTemplate)
   const [showFull, setShowFull] = useState(false)
   const customised = template !== undefined
-  const fullPrompt = buildAiPrompt(draft)
+  const tags = useTags()
+  const fullPrompt = buildAiPrompt(
+    draft,
+    tags.map((t) => t.name),
+  )
 
   const copy = async () => {
     try {
@@ -38,7 +43,7 @@ export function PromptSettings({ template }: { template: string | undefined }) {
     <div className={styles.prompt}>
       <p className={styles.description}>
         Used by <strong>Copy AI prompt</strong> when importing. <code>{SCHEMA_PLACEHOLDER}</code> is replaced with the
-        import schema. Changes save as you type.
+        import schema, and <code>{TAGS_PLACEHOLDER}</code> with the names of your tags. Changes save as you type.
       </p>
       <label htmlFor="ai-prompt" className="visually-hidden">
         AI import prompt template

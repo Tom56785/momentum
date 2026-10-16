@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import type { Project, Subtask } from '../../db/types'
+import { MAX_TAG_NAME } from '../../db/tags'
+import type { Project, Subtask, Tag } from '../../db/types'
 import { importDocumentSchema, type ImportDocument } from './importSchema'
 
 const MAX_TITLE = 200
@@ -24,10 +25,20 @@ function valid(value: string | undefined, schema: z.ZodType<string>): string | u
  * Builds an import-format (schemaVersion 1) document for one project, so it can be
  * re-imported or shared. Values that wouldn't pass the import schema are dropped rather than
  * producing a file that can't be imported. Returns undefined for a project with no steps,
- * since the schema requires at least one.
+ * since the schema requires at least one. Steps' tags go in by name (colours are only in full
+ * backups); a missing tag is left out.
  */
-export function projectToImportDoc(project: Project, subtasks: readonly Subtask[]): ImportDocument | undefined {
+export function projectToImportDoc(
+  project: Project,
+  subtasks: readonly Subtask[],
+  tags: readonly Tag[] = [],
+): ImportDocument | undefined {
   if (subtasks.length === 0) return undefined
+  const tagName = new Map(tags.map((t) => [t.id, t.name.trim().slice(0, MAX_TAG_NAME)]))
+  const tagNames = (ids: readonly string[] | undefined) => {
+    const names = [...new Set((ids ?? []).map((id) => tagName.get(id)).filter((n): n is string => !!n))].slice(0, 10)
+    return names.length ? names : undefined
+  }
   const doc: ImportDocument = {
     schemaVersion: 1,
     projects: [
@@ -50,6 +61,7 @@ export function projectToImportDoc(project: Project, subtasks: readonly Subtask[
               s.timeboxMinutes && Number.isInteger(s.timeboxMinutes) && s.timeboxMinutes >= 1 && s.timeboxMinutes <= 480
                 ? s.timeboxMinutes
                 : undefined,
+            tags: tagNames(s.tags),
           })),
       },
     ],

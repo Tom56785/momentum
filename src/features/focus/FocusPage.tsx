@@ -5,6 +5,7 @@ import { celebrateBig, celebrateEarly, celebrateSmall, reducedMotion } from '../
 import { HintBar, type Hint } from '../../components/HintBar'
 import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
+import { TagChip } from '../../components/TagChip'
 import { dismissToast, showToast } from '../../components/toast'
 import {
   completeSubtask,
@@ -31,7 +32,7 @@ import {
 import type { Via } from '../../domain/session'
 import type { Subtask } from '../../db/types'
 import { formatDuration, MINUTE, workMs } from '../../domain/time'
-import { useChallenge, useProject, useReveal, useSegmentsFor, useSession, useSettings, useSubtasks } from '../../hooks/useData'
+import { useChallenge, useProject, useReveal, useSegmentsFor, useSession, useSettings, useSubtasks, useTags } from '../../hooks/useData'
 import { useNow } from '../../hooks/useNow'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import { ParkingCapture } from '../parking-lot/ParkingCapture'
@@ -71,6 +72,7 @@ export function FocusPage() {
   const navigate = useNavigate()
   const project = useProject(projectId)
   const subtasks = useSubtasks(projectId)
+  const allTags = useTags()
   const session = useSession()
   const settings = useSettings()
   const challenge = useChallenge()
@@ -287,6 +289,7 @@ export function FocusPage() {
   const busy = exitOpen || parkOpen || stepMenuOpen || !!completed
   // What the card shows: the finished step while it celebrates, otherwise the current one.
   const shown = celebration?.subtask ?? subtask
+  const shownTags = allTags.filter((t) => shown?.tags?.includes(t.id))
   useShortcuts(
     {
       Space: () => toggleWork('shortcut'),
@@ -532,6 +535,13 @@ export function FocusPage() {
                   <h1 className={styles.taskTitle}>{shown.title}</h1>
                 )}
                 {shown.description && <p className={styles.description}>{shown.description}</p>}
+                {shownTags.length > 0 && (
+                  <div className={styles.cardTags} aria-label="Tags">
+                    {shownTags.map((tag) => (
+                      <TagChip key={tag.id} tag={tag} />
+                    ))}
+                  </div>
+                )}
                 {celebration ? (
                   <div className={styles.doneRow}>
                     <span className={styles.doneBadge}>

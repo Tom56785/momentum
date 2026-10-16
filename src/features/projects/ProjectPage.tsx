@@ -12,7 +12,7 @@ import { archiveProject, deleteProject, restoreProject, updateProject } from '..
 import { db } from '../../db/db'
 import { firstTodo, progress } from '../../domain/rules'
 import { formatDuration, workMs } from '../../domain/time'
-import { useProject, useSubtasks } from '../../hooks/useData'
+import { useProject, useSubtasks, useTags } from '../../hooks/useData'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import styles from './ProjectPage.module.css'
 import { SubtaskList } from './SubtaskList'
@@ -25,6 +25,7 @@ export function ProjectPage() {
   const navigate = useNavigate()
   const project = useProject(id)
   const subtasks = useSubtasks(id)
+  const tags = useTags()
   const addInputRef = useRef<HTMLInputElement>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const totalWorkMs = useLiveQuery(
@@ -56,7 +57,7 @@ export function ProjectPage() {
 
   // Re-importable file in the import format (e.g. to re-import after an AI rewrite, or share).
   const exportJson = () => {
-    const doc = projectToImportDoc(project, subtasks)
+    const doc = projectToImportDoc(project, subtasks, tags)
     if (!doc) return
     downloadJson(exportFileName(project), doc)
     showToast({ text: 'Project exported', tone: 'success' })

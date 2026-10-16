@@ -192,6 +192,51 @@
   flex: 1;
 }
 
+/* A step's tags on its row (collapsed), and the picker in its panel. */
+.rowTags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
+  max-width: 240px;
+}
+
+.tagPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.tagPickerLabel {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-right: var(--space-1);
+}
+
+.tagInput {
+  width: 120px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: var(--text-xs);
+  color: var(--text);
+}
+
+.tagInput:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+@media (pointer: coarse) {
+  .tagInput {
+    padding: 6px 12px;
+    font-size: var(--text-sm);
+  }
+}
+
 .notes p {
   white-space: pre-wrap;
   font-size: var(--text-sm);
@@ -242,8 +287,17 @@
   .meta {
     width: 100%;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
     padding-left: 60px;
     margin-top: -4px;
+  }
+
+  /* Tags get their own line under the title; the chips and buttons stay together below. */
+  .rowTags {
+    flex-basis: 100%;
+    max-width: none;
+    justify-content: flex-start;
   }
 }
 

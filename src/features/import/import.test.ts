@@ -104,3 +104,40 @@ describe('importProjects', () => {
     expect(await db.projects.count()).toBe(2)
   })
 })
+
+describe('importing tags', () => {
+  it('creates missing tags, reuses existing ones ignoring case, and tags the steps', async () => {
+    await db.tags.add({ id: 'existing', name: 'Backend', color: '#123456', createdAt: 1 })
+    const result = parseImport(exampleText)
+    if (result.ok !== true) throw new Error('invalid')
+    const [id] = await importProjects(result.doc)
+
+    const tags = await db.tags.toArray()
+    expect(tags.map((t) => t.name).sort()).toEqual(['Backend', 'testing'])
+    // The existing tag keeps its colour; the new one gets a random one.
+    expect(tags.find((t) => t.name === 'Backend')?.color).toBe('#123456')
+    expect(tags.find((t) => t.name === 'testing')?.color).toMatch(/^#[0-9a-f]{6}$/)
+
+    const steps = (await db.subtasks.where('projectId').equals(id).toArray()).sort((a, b) => a.order - b.order)
+    const testing = tags.find((t) => t.name === 'testing')!.id
+    expect(steps[2].tags).toEqual(['existing'])
+    expect(steps[3].tags).toEqual(['existing', testing])
+    expect(steps[0].tags).toBeUndefined()
+  })
+
+  it('merges duplicate tag names on a step', async () => {
+    const doc = { schemaVersion: 1, projects: [{ title: 'P', subtasks: [{ title: 'S', tags: ['docs', 'Docs', ' docs '] }] }] }
+    const result = parseImport(JSON.stringify(doc))
+    if (result.ok !== true) throw new Error('invalid')
+    await importProjects(result.doc)
+    expect(await db.tags.count()).toBe(1)
+    expect((await db.subtasks.toArray())[0].tags).toHaveLength(1)
+  })
+
+  it('rejects tags that are too long or not text', () => {
+    const doc = (tags: unknown) => JSON.stringify({ schemaVersion: 1, projects: [{ title: 'P', subtasks: [{ title: 'S', tags }] }] })
+    expect(parseImport(doc(['x'.repeat(31)])).ok).toBe(false)
+    expect(parseImport(doc([1])).ok).toBe(false)
+    expect(parseImport(doc(['ok'])).ok).toBe(true)
+  })
+})

@@ -533,6 +533,15 @@
   white-space: pre-wrap;
 }
 
+/* The step's tags, under its title and description. */
+.cardTags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  max-width: 560px;
+}
+
 /* ---- Hidden time ---- */
 
 .timeRow {

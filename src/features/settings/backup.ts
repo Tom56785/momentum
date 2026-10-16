@@ -34,6 +34,14 @@ const subtaskRow = z.object({
   status: z.enum(['todo', 'done']),
   createdAt: z.number(),
   completedAt: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+})
+
+const tagRow = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  createdAt: z.number(),
 })
 
 const segmentRow = z.object({
@@ -77,6 +85,8 @@ export const backupSchema = z.object({
     segments: z.array(segmentRow),
     events: z.array(eventRow),
     parkingLot: z.array(parkingRow),
+    // Backups made before tags existed have none.
+    tags: z.array(tagRow).default([]),
     settings: z.array(keyValueRow),
     appState: z.array(keyValueRow),
   }),
@@ -125,6 +135,7 @@ export async function createBackup(now = Date.now()): Promise<Backup> {
       segments: await db.segments.toArray(),
       events: await db.events.toArray(),
       parkingLot: await db.parkingLot.toArray(),
+      tags: await db.tags.toArray(),
       settings: settingsForBackup(await db.settings.toArray()),
       appState: await db.appState.toArray(),
     },
@@ -175,6 +186,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     await db.segments.bulkAdd(t.segments)
     await db.events.bulkAdd(t.events as AppEvent[])
     await db.parkingLot.bulkAdd(t.parkingLot)
+    await db.tags.bulkAdd(t.tags)
     await db.settings.bulkAdd(settingsToStore(t.settings))
     await db.appState.bulkAdd(t.appState)
   })

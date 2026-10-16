@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { setAppState, settingsFromRows } from '../db/store'
+import { sortTags, tagUsage } from '../db/tags'
 import {
   DEFAULT_SETTINGS,
   IDLE_SESSION,
@@ -10,6 +11,7 @@ import {
   type Segment,
   type Session,
   type Settings,
+  type Tag,
 } from '../db/types'
 import { logEvent } from '../db/store'
 import { sortByOrder } from '../domain/rules'
@@ -35,6 +37,16 @@ export function useSession(): Session {
 
 export function useChallenge(): Challenge | undefined {
   return useAppState('challenge')
+}
+
+/** All tags, sorted by name. */
+export function useTags(): Tag[] {
+  return useLiveQuery(async () => sortTags(await db.tags.toArray()), [], [])
+}
+
+/** How many steps use each tag. */
+export function useTagUsage(): Map<string, number> {
+  return useLiveQuery(() => tagUsage(), [], new Map<string, number>())
 }
 
 export function useSettings(): Settings {

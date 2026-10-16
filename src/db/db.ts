@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie'
-import type { AppEvent, KeyValueRow, ParkingLotItem, Project, Segment, Subtask } from './types'
+import type { AppEvent, KeyValueRow, ParkingLotItem, Project, Segment, Subtask, Tag } from './types'
 
 export class MomentumDB extends Dexie {
   projects!: EntityTable<Project, 'id'>
@@ -7,6 +7,7 @@ export class MomentumDB extends Dexie {
   segments!: EntityTable<Segment, 'id'>
   events!: EntityTable<AppEvent, 'seq'>
   parkingLot!: EntityTable<ParkingLotItem, 'id'>
+  tags!: EntityTable<Tag, 'id'>
   settings!: Table<KeyValueRow, string>
   appState!: Table<KeyValueRow, string>
 
@@ -21,6 +22,11 @@ export class MomentumDB extends Dexie {
       settings: 'key',
       appState: 'key',
     })
+    // Tags for steps; steps are indexed by tag so a tag's usage can be found.
+    this.version(2).stores({
+      subtasks: 'id, projectId, [projectId+order], status, *tags',
+      tags: 'id, name',
+    })
   }
 }
 
@@ -32,6 +38,7 @@ export const ALL_TABLES = [
   'segments',
   'events',
   'parkingLot',
+  'tags',
   'settings',
   'appState',
 ] as const

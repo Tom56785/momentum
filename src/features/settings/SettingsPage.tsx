@@ -12,6 +12,7 @@ import { useAppState, useResumeProjectId, useSettings } from '../../hooks/useDat
 import { useNow } from '../../hooks/useNow'
 import { downloadBackup, parseBackup, restoreBackup, type Backup } from './backup'
 import { PromptSettings } from './PromptSettings'
+import { TagsSettings } from './TagsSettings'
 import styles from './SettingsPage.module.css'
 
 export function SettingsPage() {
@@ -90,6 +91,10 @@ export function SettingsPage() {
 
       <Section title="Timeboxes">
         <NumberField label="Offer a challenge with this much of the timebox left" unit="%" value={settings.timeboxPromptPercentLeft} min={5} max={90} onChange={(v) => set({ timeboxPromptPercentLeft: v })} />
+      </Section>
+
+      <Section title="Tags">
+        <TagsSettings />
       </Section>
 
       <Section title="Display and sound">

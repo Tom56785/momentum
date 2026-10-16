@@ -2,6 +2,7 @@ import { reopenProjectIfCompleted } from '../../db/actions'
 import { db, newId } from '../../db/db'
 import { applyAction, SESSION_TABLES } from '../../db/session'
 import { getSession, logEvent } from '../../db/store'
+import { ensureTags } from '../../db/tags'
 import type { Project, Subtask } from '../../db/types'
 import type { ImportDocument, ImportProject } from './importSchema'
 import { totalTimeboxMinutes } from './parseImport'
@@ -32,19 +33,26 @@ function projectFields(p: ImportProject) {
   }
 }
 
-function buildSubtasks(projectId: string, p: ImportProject, now: number): Subtask[] {
-  return p.subtasks.map((s, order) => ({
-    id: newId(),
-    projectId,
-    order,
-    title: s.title,
-    description: s.description,
-    phase: s.phase,
-    timeboxMinutes: s.timeboxMinutes,
-    notes: '',
-    status: 'todo',
-    createdAt: now,
-  }))
+/** Builds the steps, creating any of their tags that don't exist yet. */
+async function buildSubtasks(projectId: string, p: ImportProject, now: number): Promise<Subtask[]> {
+  const subtasks: Subtask[] = []
+  for (const [order, s] of p.subtasks.entries()) {
+    const tags = s.tags?.length ? await ensureTags(s.tags, now) : []
+    subtasks.push({
+      id: newId(),
+      projectId,
+      order,
+      title: s.title,
+      description: s.description,
+      phase: s.phase,
+      timeboxMinutes: s.timeboxMinutes,
+      notes: '',
+      status: 'todo',
+      createdAt: now,
+      ...(tags.length ? { tags } : {}),
+    })
+  }
+  return subtasks
 }
 
 /**
@@ -56,7 +64,7 @@ export async function importProjects(
   doc: ImportDocument,
   choices: Map<number, DuplicateChoice> = new Map(),
 ): Promise<string[]> {
-  return db.transaction('rw', [db.projects, db.subtasks, ...SESSION_TABLES], async () => {
+  return db.transaction('rw', [db.projects, db.subtasks, db.tags, ...SESSION_TABLES], async () => {
     const ids: string[] = []
     const now = Date.now()
     for (const [i, p] of doc.projects.entries()) {
@@ -81,7 +89,7 @@ export async function importProjects(
         projectId = newId()
         await db.projects.add({ ...projectFields(p), id: projectId, status: 'active', createdAt: now, updatedAt: now })
       }
-      await db.subtasks.bulkAdd(buildSubtasks(projectId, p, now))
+      await db.subtasks.bulkAdd(await buildSubtasks(projectId, p, now))
       await logEvent('project_imported', {
         ts: now,
         projectId,

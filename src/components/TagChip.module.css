@@ -1,0 +1,50 @@
+/* Tinted with the tag's colour (--tag), readable in light and dark themes. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.on {
+  background: color-mix(in srgb, var(--tag) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tag) 35%, transparent);
+  color: color-mix(in srgb, var(--tag) 70%, var(--text));
+}
+
+/* Toggles (in a step's panel): an outline until picked. */
+.toggle {
+  cursor: pointer;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  transition:
+    background-color var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.toggle:hover {
+  border-color: color-mix(in srgb, var(--tag) 50%, var(--border));
+}
+
+.toggle.on {
+  background: color-mix(in srgb, var(--tag) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tag) 45%, transparent);
+  color: color-mix(in srgb, var(--tag) 70%, var(--text));
+}
+
+@media (pointer: coarse) {
+  .toggle {
+    padding: 6px 12px;
+    font-size: var(--text-sm);
+  }
+}

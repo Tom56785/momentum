@@ -4,13 +4,16 @@ import { IconButton } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { celebrateBig, celebrateEarly, celebrateSmall } from '../../components/celebrate'
 import { Icon } from '../../components/Icon'
+import { TagChip } from '../../components/TagChip'
 import { TimeboxPicker } from '../../components/TimeboxPicker'
 import { showToast } from '../../components/toast'
 import { addSubtask, completeSubtask, deleteSubtask, moveSubtask, reopenSubtask, updateSubtask } from '../../db/actions'
-import { PHASES, type Phase, type Subtask } from '../../db/types'
+import { PHASES, type Phase, type Subtask, type Tag } from '../../db/types'
 import { earlyFinishMessage } from '../../domain/rules'
+import { useTags } from '../../hooks/useData'
 import { useAutosave } from '../../hooks/useDebounced'
 import styles from './SubtaskList.module.css'
+import { TagPicker } from './TagPicker'
 
 interface SubtaskListProps {
   projectId: string
@@ -23,6 +26,7 @@ export function SubtaskList({ projectId, subtasks, addInputRef }: SubtaskListPro
   const [newTitle, setNewTitle] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const allTags = useTags()
 
   const add = async () => {
     const title = newTitle.trim()
@@ -63,6 +67,7 @@ export function SubtaskList({ projectId, subtasks, addInputRef }: SubtaskListPro
           <SubtaskRow
             key={s.id}
             subtask={s}
+            allTags={allTags}
             index={i}
             count={subtasks.length}
             dragging={dragId === s.id}
@@ -99,6 +104,8 @@ export function SubtaskList({ projectId, subtasks, addInputRef }: SubtaskListPro
 
 interface RowProps {
   subtask: Subtask
+  /** All tags, sorted; the row shows the ones on this step. */
+  allTags: Tag[]
   index: number
   count: number
   dragging: boolean
@@ -110,9 +117,10 @@ interface RowProps {
   onMove: (toIndex: number) => void
 }
 
-function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, onDragStart, onDragEnd, onDragOverRow, onMove }: RowProps) {
+function SubtaskRow({ subtask, allTags, index, count, dragging, dropBefore, dropAfter, onDragStart, onDragEnd, onDragOverRow, onMove }: RowProps) {
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
+  const stepTags = allTags.filter((t) => subtask.tags?.includes(t.id))
   // Titles can't be empty: returning false rejects the save and the field reverts.
   const [title, setTitle, flushTitle] = useAutosave(subtask.title, (t) => {
     if (!t.trim()) return false
@@ -242,6 +250,13 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
           }}
         />
         <div className={styles.meta}>
+          {!expanded && stepTags.length > 0 && (
+            <span className={styles.rowTags}>
+              {stepTags.map((tag) => (
+                <TagChip key={tag.id} tag={tag} />
+              ))}
+            </span>
+          )}
           {subtask.phase && <span className={styles.phase}>{subtask.phase}</span>}
           {subtask.timeboxMinutes && !expanded && <span className={styles.timebox}>{subtask.timeboxMinutes}m</span>}
           {!isDone && (
@@ -300,6 +315,7 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
               onClick={() => (subtask.notes.trim() ? setConfirmingDelete(true) : void remove())}
             />
           </div>
+          <TagPicker subtask={subtask} />
           <textarea
             className="textarea"
             placeholder="Description (optional)"

@@ -80,6 +80,33 @@ describe('backup round-trip', () => {
     expect((await getSettings()).breakMinutes).toBe(DEFAULT_SETTINGS.breakMinutes)
   })
 
+  it("includes tags with their colours and the steps' tags, and restores them", async () => {
+    const projectId = await createProject({ title: 'P' })
+    const stepId = await addSubtask(projectId, { title: 'Tagged' })
+    await db.tags.add({ id: 't1', name: 'backend', color: '#336699', createdAt: 1 })
+    await db.subtasks.update(stepId, { tags: ['t1'] })
+    const backup = await createBackup()
+    expect(backup.tables.tags).toEqual([{ id: 't1', name: 'backend', color: '#336699', createdAt: 1 }])
+
+    await resetDb()
+    await db.tags.add({ id: 'other', name: 'gone', color: '#000000', createdAt: 2 })
+    const parsed = parseBackup(JSON.stringify(backup))
+    if (!parsed.ok) throw new Error('expected a valid backup')
+    await restoreBackup(parsed.backup)
+    expect(await db.tags.toArray()).toEqual(backup.tables.tags)
+    expect((await db.subtasks.get(stepId))?.tags).toEqual(['t1'])
+  })
+
+  it('restores a backup made before tags existed', async () => {
+    const backup = JSON.parse(JSON.stringify(await createBackup())) as { tables: Record<string, unknown> }
+    delete backup.tables.tags
+    const parsed = parseBackup(JSON.stringify(backup))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    await restoreBackup(parsed.backup)
+    expect(await db.tags.count()).toBe(0)
+  })
+
   it('rejects files that are not backups', () => {
     expect(parseBackup('nope')).toEqual({ ok: false, error: "This file isn't valid JSON." })
     const wrong = parseBackup(JSON.stringify({ schemaVersion: 1, projects: [] }))

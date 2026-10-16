@@ -37,8 +37,10 @@ describe('projectToImportDoc', () => {
     const [id] = await importProjects(parsed.doc)
     const stored = (await db.projects.get(id))!
     const subtasks = await db.subtasks.where('projectId').equals(id).toArray()
-    const exported = projectToImportDoc(stored, subtasks)
+    const exported = projectToImportDoc(stored, subtasks, await db.tags.toArray())
     expect(exported).toEqual(parsed.doc)
+    // Tags go in by name only: colours stay in full backups.
+    expect(JSON.stringify(exported)).not.toContain('color')
     // And the file text imports cleanly again.
     expect(parseImport(JSON.stringify(exported)).ok).toBe(true)
   })
@@ -79,7 +81,10 @@ describe('exportFileName', () => {
 
 describe('buildAiPrompt', () => {
   it('fills the schema into the default or a custom template', () => {
-    expect(buildAiPrompt()).toBe(AI_PROMPT_TEMPLATE.replace('{{SCHEMA}}', IMPORT_JSON_SCHEMA_TEXT.trim()))
+    expect(buildAiPrompt()).toBe(
+      AI_PROMPT_TEMPLATE.replace('{{SCHEMA}}', IMPORT_JSON_SCHEMA_TEXT.trim()).replace('{{TAGS}}', 'none yet'),
+    )
+    expect(buildAiPrompt(undefined, ['backend', 'docs'])).toContain('Existing tags: backend, docs.')
     const custom = buildAiPrompt('Short version.\n{{SCHEMA}}\nThanks')
     expect(custom.startsWith('Short version.\n{')).toBe(true)
     expect(custom).toContain('"$id": "momentum-import-v1"')

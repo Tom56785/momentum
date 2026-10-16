@@ -8,6 +8,8 @@ export const importSubtaskSchema = z.strictObject({
   description: z.string().optional(),
   phase: z.enum(PHASES).optional(),
   timeboxMinutes: z.number().int().min(1).max(480).optional(),
+  // Tag names; ones that don't exist yet are created on import. Duplicates are merged.
+  tags: z.array(z.string().trim().min(1).max(30)).max(10).optional(),
 })
 
 export const importProjectSchema = z.strictObject({
@@ -42,6 +44,7 @@ Rules:
 - The first subtask is always a tiny, easy step (e.g. "Read the ticket and summary").
 - Cover: understanding, investigation, implementation, testing, PR/review and deployment.
 - Suggest a realistic timeboxMinutes for each subtask.
+- Give subtasks tags where they help: short lowercase labels such as backend, frontend or docs. Existing tags: {{TAGS}}. Reuse these where they fit.
 - Leave out any field you are unsure of rather than guessing.
 
 Schema:
@@ -51,8 +54,16 @@ Ticket:
 {{PASTE TICKET HERE}}`
 
 export const SCHEMA_PLACEHOLDER = '{{SCHEMA}}'
+export const TAGS_PLACEHOLDER = '{{TAGS}}'
 
-/** The prompt to copy: the user's template (or the default) with the import schema filled in. */
-export function buildAiPrompt(template: string = AI_PROMPT_TEMPLATE): string {
-  return template.split(SCHEMA_PLACEHOLDER).join(IMPORT_JSON_SCHEMA_TEXT.trim())
+/**
+ * The prompt to copy: the user's template (or the default) with the import schema and the
+ * names of existing tags filled in.
+ */
+export function buildAiPrompt(template: string = AI_PROMPT_TEMPLATE, tagNames: readonly string[] = []): string {
+  return template
+    .split(SCHEMA_PLACEHOLDER)
+    .join(IMPORT_JSON_SCHEMA_TEXT.trim())
+    .split(TAGS_PLACEHOLDER)
+    .join(tagNames.length ? tagNames.join(', ') : 'none yet')
 }

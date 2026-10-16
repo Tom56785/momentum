@@ -33,7 +33,14 @@
                 "title":          { "type": "string", "minLength": 1, "maxLength": 200, "description": "Starts with a verb, small and concrete" },
                 "description":    { "type": "string" },
                 "phase":          { "enum": ["understand", "investigate", "implement", "test", "review", "deploy", "other"] },
-                "timeboxMinutes": { "type": "integer", "minimum": 1, "maximum": 480 }
+                "timeboxMinutes": { "type": "integer", "minimum": 1, "maximum": 480 },
+                "tags": {
+                  "type": "array",
+                  "maxItems": 10,
+                  "uniqueItems": true,
+                  "items": { "type": "string", "minLength": 1, "maxLength": 30 },
+                  "description": "Short labels for the step, e.g. backend, frontend, docs. Reuse existing tags where they fit."
+                }
               }
             }
           }

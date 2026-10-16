@@ -10,8 +10,8 @@
     "subtasks": [
       { "title": "Read the ticket and AI summary", "phase": "understand", "timeboxMinutes": 5 },
       { "title": "Reproduce the duplicate email locally", "phase": "investigate", "timeboxMinutes": 30 },
-      { "title": "Add idempotency check to webhook handler", "phase": "implement", "timeboxMinutes": 45 },
-      { "title": "Write tests for retried webhooks", "phase": "test", "timeboxMinutes": 30 },
+      { "title": "Add idempotency check to webhook handler", "tags": ["backend"], "phase": "implement", "timeboxMinutes": 45 },
+      { "title": "Write tests for retried webhooks", "tags": ["backend", "testing"], "phase": "test", "timeboxMinutes": 30 },
       { "title": "Open PR and request review", "phase": "review", "timeboxMinutes": 15 },
       { "title": "Deploy and confirm in monitoring", "phase": "deploy" }
     ]
