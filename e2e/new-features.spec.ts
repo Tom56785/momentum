@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { focusOnExample, importExample, openApp, readStore, workButton } from './helpers'
+import { copiedText, focusOnExample, importExample, openApp, readStore, recordClipboard, workButton } from './helpers'
 
 const heading = (page: Page) => page.getByRole('heading', { level: 1 })
 const progress = (page: Page, done: number) => page.getByText(`${done} of 6`, { exact: true })
@@ -140,8 +140,8 @@ test.describe('editing the current step in focus', () => {
 })
 
 test.describe('AI prompt in Settings', () => {
-  test('can be edited, persists, and is what the import dialog copies and shows', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  test('can be edited, persists, and is what the import dialog copies and shows', async ({ page }) => {
+    await recordClipboard(page)
     await openApp(page, '#/settings')
     const editor = page.getByLabel('AI import prompt template')
     await expect(editor).toHaveValue(/Summarise the ticket below/)
@@ -161,8 +161,7 @@ test.describe('AI prompt in Settings', () => {
     await page.keyboard.press('i')
     await page.getByRole('button', { name: 'Copy AI prompt' }).click()
     await expect(page.getByText('AI prompt copied')).toBeVisible()
-    // Windows' clipboard stores line breaks as \r\n.
-    const copied = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')
+    const copied = await copiedText(page)
     expect(copied.slice(0, 37)).toBe('Break this ticket into small steps.\n{')
     await page.getByRole('button', { name: 'View' }).click()
     await expect(page.getByRole('textbox', { name: 'AI prompt' })).toHaveValue(/^Break this ticket/)

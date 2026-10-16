@@ -10,6 +10,7 @@ import {
   completeSubtask,
   endChallenge,
   enterFocus,
+  saveBreadcrumb,
   startChallenge,
   undoCompletion,
   type CompleteResult,
@@ -78,7 +79,6 @@ export function FocusPage() {
   const fullscreen = useFullscreen()
 
   const [entered, setEntered] = useState(false)
-  const [showBreadcrumb, setShowBreadcrumb] = useState(false)
   const [exitOpen, setExitOpen] = useState(false)
   const [parkOpen, setParkOpen] = useState(false)
   const [challengeOpen, setChallengeOpen] = useState(false)
@@ -121,16 +121,21 @@ export function FocusPage() {
     }
   }, [projectId, requestedStep, navigate])
 
-  // Show the breadcrumb once on entry, if there is one.
+  // The note left on exit stays on screen until cleared; log that it was seen, once per entry.
   const hasBreadcrumb = !!project?.breadcrumb
   useEffect(() => {
-    if (entered && hasBreadcrumb) {
-      setShowBreadcrumb(true)
-      void logEvent('breadcrumb_shown', { projectId })
-    }
-    // Only on entry; later breadcrumb edits should not re-open it.
+    if (entered && hasBreadcrumb) void logEvent('breadcrumb_shown', { projectId })
+    // Only on entry; later breadcrumb edits are not a new showing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entered])
+
+  const clearBreadcrumb = async () => {
+    const text = project?.breadcrumb?.text
+    if (!project || !text) return
+    const id = project.id
+    await saveBreadcrumb(id, '')
+    showToast({ text: 'Note cleared', action: { label: 'Undo', run: () => void saveBreadcrumb(id, text) } })
+  }
 
   const isOurs = session.projectId === projectId
   const subtask = isOurs ? subtasks?.find((s) => s.id === session.subtaskId) : undefined
@@ -169,18 +174,12 @@ export function FocusPage() {
   const toggleWork = (via: Via) => {
     if (!subtask) return
     if (working) void dispatch({ type: 'stop' }, via)
-    else {
-      setShowBreadcrumb(false)
-      void dispatch({ type: 'start', projectId, subtaskId: subtask.id }, via)
-    }
+    else void dispatch({ type: 'start', projectId, subtaskId: subtask.id }, via)
   }
 
   const toggleBreak = (via: Via) => {
     if (onBreak) void dispatch({ type: 'resume' }, via)
-    else {
-      setShowBreadcrumb(false)
-      void dispatch({ type: 'startBreak' }, via)
-    }
+    else void dispatch({ type: 'startBreak' }, via)
   }
 
   const complete = async () => {
@@ -450,19 +449,14 @@ export function FocusPage() {
           </div>
         )}
 
-        {showBreadcrumb && project.breadcrumb && !completed && (
-          <div className={styles.breadcrumb}>
+        {project.breadcrumb && !completed && (
+          <div className={styles.breadcrumb} role="note" aria-label="Your note from last time">
             <Icon name="note" size={16} />
             <div>
               <span className={styles.breadcrumbLabel}>Last time you said</span>
               <p>{project.breadcrumb.text}</p>
             </div>
-            <IconButton
-              small
-              icon="x"
-              label="Dismiss note"
-              onClick={() => setShowBreadcrumb(false)}
-            />
+            <IconButton small icon="x" label="Clear note" onClick={() => void clearBreadcrumb()} />
           </div>
         )}
 

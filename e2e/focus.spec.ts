@@ -110,3 +110,41 @@ test('finishing the last step shows project complete on the page, then no timer 
   await expect(page.getByRole('link', { name: 'Momentum overview' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Return to focus' })).toHaveCount(0)
 })
+
+test('hovering the hourglass keeps the time left shown until the pointer leaves', async ({ page }) => {
+  await focusOnExample(page)
+  const timeLeft = page.getByText(/min left/)
+  await page.getByRole('button', { name: /^Timebox:/ }).hover()
+  await expect(timeLeft).toBeVisible()
+  // Showing the time shifts the centred row; it must not then hide itself.
+  await page.waitForTimeout(500)
+  await expect(timeLeft).toBeVisible()
+  await page.mouse.move(5, 5)
+  await expect(timeLeft).toHaveCount(0)
+})
+
+test('the note left on exit stays on the focus screen until cleared', async ({ page }) => {
+  await focusOnExample(page)
+  await page.keyboard.press('Escape')
+  await page.keyboard.type('Look at retry header next')
+  await page.getByRole('button', { name: 'Exit', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Momentum overview' })).toBeVisible()
+
+  await page.locator('[data-card]').getByRole('button', { name: 'Focus' }).click()
+  const note = page.getByRole('note', { name: 'Your note from last time' })
+  await expect(note).toContainText('Look at retry header next')
+  // Starting work keeps it on screen.
+  await page.keyboard.press('Space')
+  await expect(workButton(page, 'Pause')).toBeVisible()
+  await expect(note).toBeVisible()
+
+  await note.getByRole('button', { name: 'Clear note' }).click()
+  await expect(note).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(note).toContainText('Look at retry header next')
+  await note.getByRole('button', { name: 'Clear note' }).click()
+  await expect(note).toHaveCount(0)
+  await page.reload()
+  await expect(workButton(page, 'Pause')).toBeVisible()
+  await expect(note).toHaveCount(0)
+})

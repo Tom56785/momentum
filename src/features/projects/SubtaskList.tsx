@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
 import { IconButton } from '../../components/Button'
 import { celebrateBig, celebrateEarly, celebrateSmall } from '../../components/celebrate'
@@ -122,6 +122,27 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
   )
   const isDone = subtask.status === 'done'
 
+  // The title wraps rather than being cut off, so the field grows to fit it, including when
+  // the row gets narrower or wider.
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const fit = () => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight + 2}px`
+    }
+    fit()
+    let width = el.offsetWidth
+    const observer = new ResizeObserver(() => {
+      if (el.offsetWidth === width) return
+      width = el.offsetWidth
+      fit()
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [title])
+
   const toggleDone = async (el: HTMLElement) => {
     if (isDone) {
       await reopenSubtask(subtask.id)
@@ -200,15 +221,21 @@ function SubtaskRow({ subtask, index, count, dragging, dropBefore, dropAfter, on
         >
           {isDone && <Icon name="check" size={14} />}
         </button>
-        <input
+        <textarea
+          ref={titleRef}
           className={styles.title}
+          rows={1}
           value={title}
           aria-label="Step title"
           data-hints="Enter:Save|Alt+↑↓:Move|Esc:Done"
-          onChange={(e) => setTitle(e.target.value)}
+          // One line of text, even when pasted with line breaks.
+          onChange={(e) => setTitle(e.target.value.replace(/\s*\n\s*/g, ' '))}
           onBlur={flushTitle}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur()
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
           }}
         />
         <div className={styles.meta}>

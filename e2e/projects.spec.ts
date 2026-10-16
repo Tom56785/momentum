@@ -78,3 +78,39 @@ test.describe('project screen editing', () => {
     await expect(add).toHaveValue('')
   })
 })
+
+test.describe('overview cards', () => {
+  test.beforeEach(async ({ page }) => {
+    await importExample(page)
+    await openApp(page)
+  })
+
+  test('clicking anywhere on a card opens the project', async ({ page }) => {
+    const card = page.locator('[data-card]')
+    // Near the bottom-left corner: blank space, well away from the title link's text.
+    const box = (await card.boundingBox())!
+    await page.mouse.click(box.x + 12, box.y + box.height - 8)
+    await expect(page).toHaveURL(/#\/project\//)
+  })
+
+  test("the card's Focus button still opens focus", async ({ page }) => {
+    await page.locator('[data-card]').getByRole('button', { name: 'Focus' }).click()
+    await expect(page).toHaveURL(/#\/focus\//)
+  })
+})
+
+test.describe('long step titles', () => {
+  test('wrap onto more lines instead of being cut off, and stay on one line of text', async ({ page }) => {
+    await importExample(page)
+    const title = page.getByLabel('Step title').first()
+    const oneLine = (await title.boundingBox())!.height
+    const long = 'Read the ticket and the AI summary, then note which customers reported duplicates and when it started'
+    await title.fill(long)
+    await expect.poll(async () => (await title.boundingBox())!.height).toBeGreaterThan(oneLine * 1.5)
+    // Every character is visible: the field is as tall as its content.
+    expect(await title.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true)
+    await title.press('Enter')
+    await expect(title).not.toBeFocused()
+    await expect(title).toHaveValue(long)
+  })
+})

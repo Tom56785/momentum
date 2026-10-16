@@ -22,7 +22,7 @@ export function TimeRow({ subtask, subtaskWorkMs, challenge, showWork, showTimer
   return (
     <div className={styles.timeRow}>
       <span className={styles.timeItem}>
-        <IconButton small icon={showWork ? 'eyeOff' : 'eye'} label={showWork ? 'Hide time on this step' : 'Show time on this step'} onClick={onToggleWork} />
+        <IconButton icon={showWork ? 'eyeOff' : 'eye'} label={showWork ? 'Hide time on this step' : 'Show time on this step'} onClick={onToggleWork} />
         {showWork && <span className={styles.timeValue}>{formatClock(subtaskWorkMs)} on this step</span>}
       </span>
       {timeboxLeft !== undefined && (
@@ -77,13 +77,19 @@ function Reveal({
     setPeek(false)
   }
   return (
-    <span className={styles.timeItem}>
+    // Hover is tracked on the icon and its value together: the row is centred, so showing the
+    // value shifts the icon sideways, and the pointer then lands on the value. Tracking the
+    // icon alone would hide the value again straight away.
+    <span
+      className={styles.timeItem}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && open()}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && close()}
+    >
       <button
         type="button"
         className={styles.revealButton}
         aria-label={`${label}: ${shown ? 'shown' : 'hover or focus to show time left'}`}
-        onPointerEnter={(e) => e.pointerType === 'mouse' && open()}
-        onPointerLeave={close}
+        onPointerLeave={(e) => e.pointerType !== 'mouse' && close()}
         onPointerDown={(e) => {
           if (e.pointerType !== 'mouse') pressTimer.current = setTimeout(open, 350)
         }}
@@ -92,7 +98,7 @@ function Reveal({
         onBlur={close}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <Icon name={icon} size={16} />
+        <Icon name={icon} size={20} />
       </button>
       <span className={[styles.timeValue, styles.revealValue, shown && styles.revealShown].filter(Boolean).join(' ')} aria-live="polite">
         {shown ? value : null}

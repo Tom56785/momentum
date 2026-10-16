@@ -112,6 +112,10 @@
   background: transparent;
   border-radius: var(--radius-sm);
   padding: var(--space-2);
+  /* A textarea that wraps long titles; its height is set to fit them. */
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
   transition: color var(--dur);
 }
 

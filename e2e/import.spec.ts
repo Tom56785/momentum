@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { EXAMPLE_TITLE, importExample, openApp } from './helpers'
+import { copiedText, EXAMPLE_TITLE, importExample, openApp, recordClipboard } from './helpers'
 
 test('imports the example and lands on the project with Start focus', async ({ page }) => {
   await importExample(page)
@@ -20,13 +20,13 @@ test('shows friendly, path-based errors and tolerates a code fence', async ({ pa
   await expect(dialog.getByRole('button', { name: 'Import', exact: true })).toBeDisabled()
 })
 
-test('Copy AI prompt copies the prompt with the schema embedded', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+test('Copy AI prompt copies the prompt with the schema embedded', async ({ page }) => {
+  await recordClipboard(page)
   await openApp(page)
   await page.keyboard.press('i')
   await page.getByRole('button', { name: 'Copy AI prompt' }).click()
   await expect(page.getByText('AI prompt copied')).toBeVisible()
-  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  const copied = await copiedText(page)
   expect(copied).toContain('"$id": "momentum-import-v1"')
   expect(copied).toContain('{{PASTE TICKET HERE}}')
   expect(copied).not.toContain('{{SCHEMA}}')

@@ -2,6 +2,31 @@ import { expect, type Page } from '@playwright/test'
 
 export const EXAMPLE_TITLE = 'Fix duplicate emails on order confirmation'
 
+/**
+ * Records what the app copies, inside the page, instead of using the system clipboard. On
+ * Windows every browser shares one clipboard, so tests copying in parallel would read each
+ * other's text. Call before the page loads; read the result with copiedText().
+ */
+export async function recordClipboard(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __copied?: string }
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          w.__copied = text
+        },
+        readText: async () => w.__copied ?? '',
+      },
+    })
+  })
+}
+
+/** The text most recently copied, when recordClipboard() is on. */
+export async function copiedText(page: Page): Promise<string> {
+  return page.evaluate(() => (window as unknown as { __copied?: string }).__copied ?? '')
+}
+
 /** Opens the app on the overview and waits for it to be ready. */
 export async function openApp(page: Page, hash = ''): Promise<void> {
   await page.goto(`/${hash}`)

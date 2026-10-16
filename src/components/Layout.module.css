@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  max-width: 1040px;
+  max-width: var(--page-max);
   width: 100%;
   margin: 0 auto;
   padding: var(--space-4) var(--space-5);
@@ -78,7 +78,7 @@
 
 .main {
   flex: 1;
-  max-width: 1040px;
+  max-width: var(--page-max);
   width: 100%;
   margin: 0 auto;
   padding: var(--space-3) var(--space-5) var(--space-8);
