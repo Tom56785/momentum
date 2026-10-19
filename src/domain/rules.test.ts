@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Challenge, Segment, Session, Subtask } from '../db/types'
 import {
   adjacentTodo,
+  beatEstimateMessage,
   beatTimeboxMinutes,
   earlyFinishMessage,
   earlyFinishMs,
@@ -11,6 +12,7 @@ import {
   isStaleSession,
   nextTodo,
   progress,
+  projectEstimate,
   shouldPromptTimebox,
   shouldShowBreakPrompt,
   staleEndTime,
@@ -194,5 +196,18 @@ describe('finishing early', () => {
   it('describes the time to spare', () => {
     expect(earlyFinishMessage(7 * MINUTE + 40_000)).toBe('Done with 7 min to spare')
     expect(earlyFinishMessage(30_000)).toBe('Done just inside your timebox')
+  })
+})
+
+describe('project estimate', () => {
+  it("adds up the steps' timeboxes, skipping steps without one", () => {
+    expect(projectEstimate([{ timeboxMinutes: 25 }, {}, { timeboxMinutes: 50 }])).toEqual({ minutes: 75, steps: 2 })
+    expect(projectEstimate([{}, {}])).toEqual({ minutes: 0, steps: 0 })
+  })
+
+  it('celebrates beating the estimate', () => {
+    expect(beatEstimateMessage(25 * MINUTE + 40_000)).toBe('You beat your estimate by 25 min!')
+    expect(beatEstimateMessage(HOUR + 5 * MINUTE)).toBe('You beat your estimate by 1h 05m!')
+    expect(beatEstimateMessage(20_000)).toBe('You came in just under your estimate!')
   })
 })

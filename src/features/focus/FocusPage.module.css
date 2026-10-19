@@ -808,6 +808,23 @@
   animation: rise-in var(--dur-slow) var(--ease-out) 350ms both;
 }
 
+.completeBeat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  background: var(--success-soft);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  animation: rise-in var(--dur-slow) var(--ease-spring) 550ms both;
+}
+
+.completeBeat svg {
+  flex: none;
+  color: var(--success);
+}
+
 @keyframes badge-ring {
   to {
     box-shadow: 0 0 0 22px color-mix(in srgb, var(--success) 0%, transparent);

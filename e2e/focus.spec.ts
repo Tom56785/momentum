@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { EXAMPLE_TITLE, focusOnExample, openApp, openSegmentCount, workButton } from './helpers'
+import { EXAMPLE_TITLE, focusOnExample, importExample, openApp, openSegmentCount, workButton } from './helpers'
 
 test('entering focus does not start the timer; Space does', async ({ page }) => {
   await focusOnExample(page)
@@ -92,7 +92,11 @@ test('the session survives a reload', async ({ page }) => {
 })
 
 test('finishing the last step shows project complete on the page, then no timer bar', async ({ page }) => {
-  await focusOnExample(page)
+  await importExample(page)
+  // The steps' timeboxes, added up: five of the example's six steps have one.
+  await expect(page.getByText('2h 05m estimated (5 of 6 steps)')).toBeVisible()
+  await page.getByRole('button', { name: 'Start focus' }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Read the ticket and AI summary')
   await page.keyboard.press('Space')
   await expect(workButton(page, 'Pause')).toBeVisible()
   const progress = (n: number) => page.getByText(`${n} of 6`, { exact: true })
@@ -105,6 +109,7 @@ test('finishing the last step shows project complete on the page, then no timer 
   await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('heading', { name: 'Project complete' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Project complete' }).getByText(EXAMPLE_TITLE)).toBeVisible()
+  await expect(page.getByText(/^You beat your estimate by .+!$/)).toBeVisible()
   await expect(page.locator('dialog[open]')).toHaveCount(0)
   await page.getByRole('button', { name: 'Back to overview' }).click()
   await expect(page.getByRole('link', { name: 'Momentum overview' })).toBeVisible()

@@ -10,8 +10,8 @@ import { NotFound } from '../../components/NotFound'
 import { ProgressBar } from '../../components/ProgressBar'
 import { archiveProject, deleteProject, restoreProject, updateProject } from '../../db/actions'
 import { db } from '../../db/db'
-import { firstTodo, progress } from '../../domain/rules'
-import { formatDuration, workMs } from '../../domain/time'
+import { beatEstimateMessage, earlyFinishMs, firstTodo, progress, projectEstimate } from '../../domain/rules'
+import { formatDuration, MINUTE, workMs } from '../../domain/time'
 import { useProject, useSubtasks, useTags } from '../../hooks/useData'
 import { useShortcuts } from '../../hooks/useShortcuts'
 import styles from './ProjectPage.module.css'
@@ -48,6 +48,8 @@ export function ProjectPage() {
   if (project === null) return <NotFound what="project" />
 
   const { done, total } = progress(subtasks)
+  const estimate = projectEstimate(subtasks)
+  const spareMs = earlyFinishMs(estimate.minutes, totalWorkMs)
   const save = (field: keyof typeof project) => (value: string) => updateProject(project.id, { [field]: value.trim() || undefined })
   // Titles can't be empty: returning false rejects the save and the field reverts.
   const saveTitle = (value: string) => {
@@ -104,6 +106,18 @@ export function ProjectPage() {
           <span className={styles.count}>
             {done} of {total} done
           </span>
+          {estimate.steps > 0 && (
+            <span className={styles.estimate} title="The steps' timeboxes added up">
+              <Icon name="hourglass" size={14} />
+              {formatDuration(estimate.minutes * MINUTE)} estimated
+              {estimate.steps < total && (
+                <>
+                  {' '}
+                  ({estimate.steps} of {total} steps)
+                </>
+              )}
+            </span>
+          )}
         </div>
       </header>
 
@@ -116,6 +130,9 @@ export function ProjectPage() {
               {total} {total === 1 ? 'step' : 'steps'} finished
               {totalWorkMs > 0 && <> in {formatDuration(totalWorkMs)} of focused work</>}. That's real progress.
             </p>
+            {spareMs !== undefined && (
+              <p className={styles.beat}>{beatEstimateMessage(spareMs)}</p>
+            )}
           </div>
         </section>
       )}

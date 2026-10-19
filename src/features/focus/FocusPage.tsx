@@ -24,6 +24,7 @@ import {
   earlyFinishMessage,
   earlyFinishMs,
   progress,
+  projectEstimate,
   shouldPromptTimebox,
   shouldShowBreakPrompt,
   timeboxLeftMs,
@@ -460,6 +461,7 @@ export function FocusPage() {
             title={project.title}
             steps={total}
             totalWorkMs={completed.totalWorkMs ?? 0}
+            estimateMinutes={projectEstimate(chain).minutes}
             onDone={() => navigate('/')}
           />
         ) : shown ? (

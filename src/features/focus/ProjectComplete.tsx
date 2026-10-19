@@ -3,6 +3,7 @@ import { Button } from '../../components/Button'
 import { celebrateBig } from '../../components/celebrate'
 import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
+import { beatEstimateMessage, earlyFinishMs } from '../../domain/rules'
 import { formatDuration } from '../../domain/time'
 import styles from './FocusPage.module.css'
 
@@ -11,13 +12,18 @@ export function ProjectComplete({
   title,
   steps,
   totalWorkMs,
+  estimateMinutes,
   onDone,
 }: {
   title: string
   steps: number
   totalWorkMs: number
+  /** The steps' timeboxes added up; 0 when none had one. */
+  estimateMinutes: number
   onDone: () => void
 }) {
+  const spareMs = earlyFinishMs(estimateMinutes, totalWorkMs)
+
   useEffect(() => {
     celebrateBig()
   }, [])
@@ -38,6 +44,12 @@ export function ProjectComplete({
         {steps} {steps === 1 ? 'step' : 'steps'} done
         {totalWorkMs > 0 && <> · {formatDuration(totalWorkMs)} of focused work</>}
       </p>
+      {spareMs !== undefined && (
+        <p className={styles.completeBeat}>
+          <Icon name="sparkle" size={18} />
+          {beatEstimateMessage(spareMs)}
+        </p>
+      )}
       <Button variant="primary" size="xl" autoFocus onClick={onDone}>
         Back to overview
       </Button>

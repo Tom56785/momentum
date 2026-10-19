@@ -1,5 +1,5 @@
 import type { AppEvent, Challenge, Segment, Session, Settings, Subtask } from '../db/types'
-import { HOUR, MINUTE } from './time'
+import { formatDuration, HOUR, MINUTE } from './time'
 
 // ---- Break prompts ----
 
@@ -163,4 +163,25 @@ export function earlyFinishMessage(spareMs: number): string {
   const minutes = Math.floor(spareMs / MINUTE)
   if (minutes < 1) return 'Done just inside your timebox'
   return `Done with ${minutes} min to spare`
+}
+
+// ---- Project estimate ----
+
+/** The project's estimate: its steps' timeboxes added up, and how many steps have one. */
+export function projectEstimate(subtasks: readonly Pick<Subtask, 'timeboxMinutes'>[]): { minutes: number; steps: number } {
+  let minutes = 0
+  let steps = 0
+  for (const s of subtasks) {
+    if (!s.timeboxMinutes) continue
+    minutes += s.timeboxMinutes
+    steps++
+  }
+  return { minutes, steps }
+}
+
+/** Encouragement for finishing a whole project inside its estimate. */
+export function beatEstimateMessage(spareMs: number): string {
+  const minutes = Math.floor(spareMs / MINUTE)
+  if (minutes < 1) return 'You came in just under your estimate!'
+  return `You beat your estimate by ${minutes < 60 ? `${minutes} min` : formatDuration(spareMs)}!`
 }

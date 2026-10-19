@@ -63,6 +63,23 @@
   color: var(--text-muted);
 }
 
+.estimate {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  /* A little apart from the count: it's a separate fact. */
+  margin-left: var(--space-3);
+}
+
+.achievement .beat {
+  margin-top: var(--space-2);
+  font-weight: 600;
+}
+
 .achievement {
   display: flex;
   gap: var(--space-4);
@@ -173,6 +190,21 @@
 @media (max-width: 480px) {
   .titleField input {
     font-size: var(--text-lg);
+  }
+
+  /* The estimate drops to its own line so the bar keeps its width. */
+  .progressRow {
+    flex-wrap: wrap;
+  }
+
+  /* The bar shares its line with the count instead of wrapping by itself. */
+  .progressRow > [role='progressbar'] {
+    flex: 1 1 0;
+  }
+
+  .estimate {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 
   .metaRow {
