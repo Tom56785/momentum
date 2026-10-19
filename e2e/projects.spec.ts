@@ -28,6 +28,20 @@ test.describe('project screen editing', () => {
     await importExample(page)
   })
 
+  test('a long title wraps, but Enter saves it rather than adding a line', async ({ page }) => {
+    const title = page.getByRole('textbox', { name: 'Project title' })
+    const oneLine = (await title.boundingBox())?.height ?? 0
+    await title.fill('A very long project title that keeps on going, well past the width of the page it sits on, so it has to wrap')
+    await expect.poll(async () => (await title.boundingBox())?.height ?? 0).toBeGreaterThan(oneLine * 1.5)
+    await title.press('End')
+    await title.press('Enter')
+    await expect(title).not.toBeFocused()
+    await expect(title).not.toHaveValue(/\n/)
+    await expect
+      .poll(async () => (await readStore<{ title: string }>(page, 'projects'))[0]?.title)
+      .toBe('A very long project title that keeps on going, well past the width of the page it sits on, so it has to wrap')
+  })
+
   test('Summary keeps a newline typed before the autosave pause', async ({ page }) => {
     const summary = page.getByRole('textbox', { name: 'Summary', exact: true })
     await summary.click()

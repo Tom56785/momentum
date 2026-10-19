@@ -83,6 +83,7 @@ export function ProjectPage() {
           <AutoField
             label="Project title"
             hideLabel
+            wrap
             value={project.title}
             onSave={saveTitle}
             className={styles.titleField}

@@ -7,6 +7,8 @@ interface AutoFieldProps {
   /** Return false to reject a value; the field then reverts to the stored one. */
   onSave: AutosaveFn
   multiline?: boolean
+  /** A single line of text that wraps onto more lines when it doesn't fit. */
+  wrap?: boolean
   placeholder?: string
   type?: 'text' | 'url' | 'date'
   className?: string
@@ -20,6 +22,7 @@ export function AutoField({
   value,
   onSave,
   multiline,
+  wrap,
   placeholder,
   type = 'text',
   className,
@@ -30,12 +33,17 @@ export function AutoField({
   const [draft, setDraft, flush] = useAutosave(value ?? '', onSave)
   const areaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-grow textareas to fit their content.
+  // Auto-grow textareas to fit their content, again when a new width rewraps it.
   useLayoutEffect(() => {
     const el = areaRef.current
     if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight + 2}px`
+    const fit = () => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight + 2}px`
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
   }, [draft])
 
   return (
@@ -54,6 +62,24 @@ export function AutoField({
           data-hints={hints ?? 'Esc:Done'}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={flush}
+        />
+      ) : wrap ? (
+        <textarea
+          id={id}
+          ref={areaRef}
+          className="input wrapInput"
+          rows={1}
+          value={draft}
+          placeholder={placeholder}
+          data-hints={hints ?? 'Enter:Save|Esc:Done'}
+          // Still one line of text: pasted line breaks become spaces.
+          onChange={(e) => setDraft(e.target.value.replace(/\s*\n\s*/g, ' '))}
+          onBlur={flush}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            e.currentTarget.blur()
+          }}
         />
       ) : (
         <input

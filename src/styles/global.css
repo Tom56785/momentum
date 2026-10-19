@@ -244,6 +244,13 @@ kbd {
   line-height: 1.5;
 }
 
+/* An input that wraps (AutoField's `wrap`): it grows to fit, so no handle or scrollbar. */
+.wrapInput {
+  display: block;
+  resize: none;
+  overflow: hidden;
+}
+
 /* Our own arrow, so it sits clear of the right edge (the native one hugs it). Drawn with
    two gradients so it follows the theme's text colour. */
 .select {

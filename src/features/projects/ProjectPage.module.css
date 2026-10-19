@@ -36,7 +36,7 @@
   min-width: 0;
 }
 
-.titleField input {
+.titleField textarea {
   font-size: var(--text-xl);
   font-weight: 650;
   border-color: transparent;
@@ -44,9 +44,10 @@
   padding-left: var(--space-2);
   margin-left: calc(-1 * var(--space-2));
   letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
-.titleField input:hover {
+.titleField textarea:hover {
   border-color: var(--border);
 }
 
@@ -188,7 +189,7 @@
 }
 
 @media (max-width: 480px) {
-  .titleField input {
+  .titleField textarea {
     font-size: var(--text-lg);
   }
 
