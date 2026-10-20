@@ -71,6 +71,16 @@ test('break prompt, snooze, timebox prompt, challenge time-up and break', async 
   expect(ended.map((e) => e.data?.outcome)).toEqual(['timeUp'])
 })
 
+test('the challenge offer goes once the timebox is reached, and other banners show alongside it', async ({ page }) => {
+  await advance(page, 25 * MINUTE + 30_000)
+  await expect(page.getByText('Nearly at your timebox')).toBeVisible()
+  await expect(page.getByText('A short break helps')).toBeVisible()
+
+  await advance(page, 5 * MINUTE)
+  await expect(page.getByText('Nearly at your timebox')).toHaveCount(0)
+  await expect(page.getByText('A short break helps')).toBeVisible()
+})
+
 test('the timebox prompt waits for the running step, with a note on the banner meanwhile', async ({ page }) => {
   await page.getByRole('button', { name: 'Next step' }).click()
   const note = page.getByText("It's nearly at its timebox.")

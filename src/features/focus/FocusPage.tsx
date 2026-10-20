@@ -170,6 +170,8 @@ export function FocusPage() {
   const breakPrompt = isOurs && shouldShowBreakPrompt(session, settings, now)
 
   // Timebox prompt: once per subtask, when the configured minutes are left.
+  // The challenge offer only makes sense while there's time left to beat.
+  const timeUp = timeboxLeftMs(subtask?.timeboxMinutes, subtaskWorkMs) === 0
   const promptTimebox =
     !!subtask &&
     !viewing &&
@@ -463,60 +465,62 @@ export function FocusPage() {
       {topBar}
 
       <main className={styles.main}>
-        {breakPrompt && !completed && (
-          <div className={styles.banner} role="status" data-own-keys>
-            <Icon name="coffee" size={18} />
-            <span>You've been going for a while. A short break helps the next stretch.</span>
-            <div className={styles.bannerActions}>
-              <Button size="sm" variant="primary" onClick={() => void dispatch({ type: 'startBreak' }, 'prompt')}>
-                Take a break
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => void dispatch({ type: 'snooze', snoozeMinutes: settings.snoozeMinutes })}>
-                Keep going
-              </Button>
+        <div className={styles.banners}>
+          {breakPrompt && !completed && (
+            <div className={styles.banner} role="status" data-own-keys>
+              <Icon name="coffee" size={18} />
+              <span>You've been going for a while. A short break helps the next stretch.</span>
+              <div className={styles.bannerActions}>
+                <Button size="sm" variant="primary" onClick={() => void dispatch({ type: 'startBreak' }, 'prompt')}>
+                  Take a break
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void dispatch({ type: 'snooze', snoozeMinutes: settings.snoozeMinutes })}>
+                  Keep going
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {timeboxPromptFor && timeboxPromptFor === subtask?.id && !activeChallenge && (
-          <div className={styles.banner} role="status" data-own-keys>
-            <Icon name="hourglass" size={18} />
-            <span>Nearly at your timebox — want to turn on challenge mode?</span>
-            <div className={styles.bannerActions}>
-              <Button
-                size="sm"
-                variant="primary"
-                icon="flame"
-                onClick={() => void beginChallenge(beatTimeboxMinutes(subtask.timeboxMinutes, subtaskWorkMs) ?? Math.max(1, Math.round(timeboxPromptThresholdMs(subtask.timeboxMinutes ?? 0, settings.timeboxPromptPercentLeft) / MINUTE)), 'timeboxPrompt')}
-              >
-                Start challenge
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setTimeboxPromptFor(null)}>
-                No thanks
-              </Button>
+          {timeboxPromptFor && timeboxPromptFor === subtask?.id && !activeChallenge && !timeUp && (
+            <div className={styles.banner} role="status" data-own-keys>
+              <Icon name="hourglass" size={18} />
+              <span>Nearly at your timebox — want to turn on challenge mode?</span>
+              <div className={styles.bannerActions}>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  icon="flame"
+                  onClick={() => void beginChallenge(beatTimeboxMinutes(subtask.timeboxMinutes, subtaskWorkMs) ?? Math.max(1, Math.round(timeboxPromptThresholdMs(subtask.timeboxMinutes ?? 0, settings.timeboxPromptPercentLeft) / MINUTE)), 'timeboxPrompt')}
+                >
+                  Start challenge
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setTimeboxPromptFor(null)}>
+                  No thanks
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {viewing && current && !celebration && !completed && (
-          <div className={styles.banner} role="status" data-own-keys>
-            <Icon name="play" size={18} />
-            <span>
-              {`Your timer is still running on step ${chain.findIndex((s) => s.id === current.id) + 1}: “${shortTitle(current.title)}”`}
-              {runningNearTimebox && (
-                <span className={styles.bannerNote}>
-                  <Icon name="hourglass" size={14} />
-                  It's nearly at its timebox.
-                </span>
-              )}
-            </span>
-            <div className={styles.bannerActions}>
-              <Button size="sm" variant="primary" onClick={backToRunning}>
-                Back to it
-              </Button>
+          {viewing && current && !celebration && !completed && (
+            <div className={styles.banner} role="status" data-own-keys>
+              <Icon name="play" size={18} />
+              <span>
+                {`Your timer is still running on step ${chain.findIndex((s) => s.id === current.id) + 1}: “${shortTitle(current.title)}”`}
+                {runningNearTimebox && (
+                  <span className={styles.bannerNote}>
+                    <Icon name="hourglass" size={14} />
+                    It's nearly at its timebox.
+                  </span>
+                )}
+              </span>
+              <div className={styles.bannerActions}>
+                <Button size="sm" variant="primary" onClick={backToRunning}>
+                  Back to it
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {completed ? (
           <ProjectComplete
