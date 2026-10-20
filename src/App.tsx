@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createHashRouter, Outlet, RouterProvider } from 'react-router'
+import { useLayoutEffect, useState } from 'react'
+import { createHashRouter, Outlet, RouterProvider, useLocation } from 'react-router'
 import { Layout } from './components/Layout'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { StaleSessionDialog } from './components/StaleSessionDialog'
@@ -16,6 +16,11 @@ import { useShortcuts } from './hooks/useShortcuts'
 function Root() {
   const [helpOpen, setHelpOpen] = useState(false)
   useShortcuts({ '?': () => setHelpOpen(true) })
+  // A new page always starts at the top, however far the last one was scrolled.
+  const { pathname } = useLocation()
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
   return (
     <>
       <Outlet />

@@ -205,3 +205,21 @@ test('Clear all stats empties time and history but keeps projects', async ({ pag
   await openApp(page)
   await expect(page.locator('[data-card]')).toHaveCount(1)
 })
+
+test('a new page starts at the top, however far the last one was scrolled', async ({ page }) => {
+  await importExample(page)
+  const projectHash = await page.evaluate(() => location.hash)
+  await page.setViewportSize({ width: 1280, height: 400 })
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(page).toHaveURL(/#\/settings/)
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+  // Keep the page tall throughout, so the scroll can't drop back on its own while the next
+  // page loads (as it can here, though not when its data arrives within a frame).
+  await page.addStyleTag({ content: 'body { min-height: 5000px }' })
+  // As a link would: the router picks up the change without a reload.
+  await page.evaluate((hash) => (location.hash = hash), projectHash)
+  await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+})
