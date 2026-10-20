@@ -185,6 +185,8 @@ export interface CompleteResult {
   nextSubtaskId?: string
   /** Work was running and stopped because nothing was left (so undo can resume it). */
   stoppedWork?: boolean
+  /** The step was the session's current one (so undo points the session back at it). */
+  wasCurrent?: boolean
   /** The personal best this completion replaced, so undo can restore it (null: there was none). */
   personalBestBefore?: number | null
   /** Time to spare on the step's timebox, when it was finished early. */
@@ -224,6 +226,7 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
     const result: CompleteResult = {
       subtaskId: id,
       stoppedWork,
+      wasCurrent: session.subtaskId === id,
       nextSubtaskId: next?.id,
       earlyByMs: earlyFinishMs(subtask.timeboxMinutes, workOnSubtask),
       projectCompleted: false,
@@ -303,6 +306,8 @@ export async function undoCompletion(result: CompleteResult): Promise<void> {
       await setAppState('personalBests', bests)
     }
 
+    // A step finished while work ran on another one leaves that work where it is.
+    if (!result.wasCurrent) return
     const session = await getSession()
     if (session.projectId !== subtask.projectId) return
     if (session.subtaskId !== id) await applyAction({ type: 'switch', subtaskId: id }, 'focus', now)

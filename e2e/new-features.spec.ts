@@ -95,6 +95,39 @@ test.describe('jumping to a step', () => {
     await expect(page.getByRole('button', { name: /^step 3 of 6/i })).toBeFocused()
   })
 
+  test('browsing steps while working leaves the timer on the started step', async ({ page }) => {
+    await focusOnExample(page)
+    await page.keyboard.press('Space')
+    await expect(workButton(page, 'Pause')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Next step' }).click()
+    await expect(heading(page)).toHaveText('Reproduce the duplicate email locally')
+    await expect(workButton(page, 'Start')).toBeVisible()
+    await expect(page.getByText(/timer is still running on step 1/)).toBeVisible()
+    let open = (await readStore<{ subtaskId?: string; endedAt?: number }>(page, 'segments')).filter((s) => !s.endedAt)
+    const [first] = (await readStore<{ id: string; order: number }>(page, 'subtasks')).sort((a, b) => a.order - b.order)
+    expect(open).toEqual([expect.objectContaining({ subtaskId: first.id })])
+
+    await page.getByRole('button', { name: 'Back to it' }).click()
+    await expect(heading(page)).toHaveText('Read the ticket and AI summary')
+    await expect(workButton(page, 'Pause')).toBeVisible()
+    await expect(page.getByText(/timer is still running/)).toHaveCount(0)
+
+    // Starting the step on screen moves the timer onto it.
+    await page.getByRole('button', { name: 'Next step' }).click()
+    await page.keyboard.press('Space')
+    await expect(workButton(page, 'Pause')).toBeVisible()
+    await expect(page.getByText(/timer is still running/)).toHaveCount(0)
+
+    // Completing the running step still starts the next one.
+    await page.keyboard.press('Control+Enter')
+    await expect(heading(page)).toHaveText('Add idempotency check to webhook handler')
+    await expect(workButton(page, 'Pause')).toBeVisible()
+    open = (await readStore<{ subtaskId?: string; endedAt?: number }>(page, 'segments')).filter((s) => !s.endedAt)
+    expect(open).toHaveLength(1)
+    expect(open[0].subtaskId).not.toBe(first.id)
+  })
+
   test('left and right arrow keys are not shortcuts on the focus screen', async ({ page }) => {
     await focusOnExample(page)
     await page.keyboard.press('ArrowRight')

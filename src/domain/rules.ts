@@ -38,10 +38,21 @@ export function timeboxPromptThresholdMs(timeboxMinutes: number, percentLeft: nu
 }
 
 /**
- * Whether to fire the one-time "nearly at your timebox" prompt: work is running on the
- * subtask, it has crossed the threshold (a percentage of the timebox left), time is not yet
- * up, and it was not prompted before. Skipped when the threshold is under a minute, as a
+ * Whether work on a step is nearly at its timebox: past the threshold (a percentage of the
+ * timebox left) but not yet out of time. Never when the threshold is under a minute, as a
  * challenge that short isn't worth interrupting for.
+ */
+export function nearTimebox(timeboxMinutes: number | undefined, subtaskWorkMs: number, thresholdPercent: number): boolean {
+  if (!timeboxMinutes) return false
+  const threshold = timeboxPromptThresholdMs(timeboxMinutes, thresholdPercent)
+  if (threshold < MINUTE) return false
+  const left = timeboxLeftMs(timeboxMinutes, subtaskWorkMs) ?? 0
+  return left > 0 && left <= threshold
+}
+
+/**
+ * Whether to fire the one-time "nearly at your timebox" prompt: work is running on the
+ * subtask, it is nearly at its timebox, and it was not prompted before.
  */
 export function shouldPromptTimebox(args: {
   session: Session
@@ -53,12 +64,8 @@ export function shouldPromptTimebox(args: {
   const { session, subtask, subtaskWorkMs, thresholdPercent, challengeActive } = args
   if (challengeActive) return false
   if (session.state !== 'working' || session.subtaskId !== subtask.id) return false
-  if (!subtask.timeboxMinutes) return false
-  const threshold = timeboxPromptThresholdMs(subtask.timeboxMinutes, thresholdPercent)
-  if (threshold < MINUTE) return false
   if (session.timeboxPromptShownFor?.includes(subtask.id)) return false
-  const left = timeboxLeftMs(subtask.timeboxMinutes, subtaskWorkMs) ?? 0
-  return left > 0 && left <= threshold
+  return nearTimebox(subtask.timeboxMinutes, subtaskWorkMs, thresholdPercent)
 }
 
 // ---- Challenges ----

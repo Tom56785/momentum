@@ -10,6 +10,7 @@ import {
   isBreakOver,
   isChallengeTimeUp,
   isStaleSession,
+  nearTimebox,
   nextTodo,
   progress,
   projectEstimate,
@@ -108,6 +109,14 @@ describe('timeboxes', () => {
     expect(shouldPromptTimebox({ ...base, subtask: { id: 's1', timeboxMinutes: 3 }, subtaskWorkMs: 2.5 * MINUTE })).toBe(false)
     expect(shouldPromptTimebox({ ...base, challengeActive: true, subtaskWorkMs: 21 * MINUTE })).toBe(false)
     expect(shouldPromptTimebox({ ...base, session: { ...working, state: 'paused' }, subtaskWorkMs: 21 * MINUTE })).toBe(false)
+  })
+
+  it('knows when work is nearly at its timebox, whether or not it was prompted', () => {
+    expect(nearTimebox(25, 17 * MINUTE, 30)).toBe(false)
+    expect(nearTimebox(25, 20 * MINUTE, 30)).toBe(true)
+    expect(nearTimebox(25, 25 * MINUTE, 30)).toBe(false)
+    expect(nearTimebox(undefined, 20 * MINUTE, 30)).toBe(false)
+    expect(nearTimebox(3, 2.5 * MINUTE, 30)).toBe(false)
   })
 })
 

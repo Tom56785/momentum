@@ -71,6 +71,21 @@ test('break prompt, snooze, timebox prompt, challenge time-up and break', async 
   expect(ended.map((e) => e.data?.outcome)).toEqual(['timeUp'])
 })
 
+test('the timebox prompt waits for the running step, with a note on the banner meanwhile', async ({ page }) => {
+  await page.getByRole('button', { name: 'Next step' }).click()
+  const note = page.getByText("It's nearly at its timebox.")
+  await expect(page.getByText(/timer is still running on step 2/)).toBeVisible()
+  await expect(note).toHaveCount(0)
+
+  await advance(page, 22 * MINUTE)
+  await expect(note).toBeVisible()
+  await expect(page.getByText('Nearly at your timebox')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Back to it' }).click()
+  await expect(page.getByText('Nearly at your timebox')).toBeVisible()
+  await expect(note).toHaveCount(0)
+})
+
 test('a work session left running for hours asks before keeping the time', async ({ page }) => {
   await advance(page, 10 * MINUTE)
   await page.clock.setSystemTime(T0 + 6 * 60 * MINUTE)

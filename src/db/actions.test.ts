@@ -419,6 +419,17 @@ describe('undoing a completion', () => {
     expect(await openSegments()).toHaveLength(0)
   })
 
+  it('leaves work running on another step where it is', async () => {
+    const { projectId, ids } = await setupProject()
+    await dispatch({ type: 'start', projectId, subtaskId: ids[0] })
+    const result = await completeSubtask(ids[1])
+    expect(await getSession()).toMatchObject({ state: 'working', subtaskId: ids[0] })
+    await undoCompletion(result)
+    expect((await db.subtasks.get(ids[1]))?.status).toBe('todo')
+    expect(await getSession()).toMatchObject({ state: 'working', subtaskId: ids[0] })
+    expect(await openSegments()).toEqual([expect.objectContaining({ subtaskId: ids[0] })])
+  })
+
   it('restores the personal best a challenge win replaced', async () => {
     const { projectId, ids } = await setupProject()
     await dispatch({ type: 'start', projectId, subtaskId: ids[0] })

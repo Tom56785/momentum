@@ -23,6 +23,7 @@ import {
   beatTimeboxMinutes,
   earlyFinishMessage,
   earlyFinishMs,
+  nearTimebox,
   progress,
   projectEstimate,
   shouldPromptTimebox,
@@ -91,6 +92,8 @@ export function FocusPage() {
   const [celebration, setCelebration] = useState<Celebration | null>(null)
   const [stepMenuOpen, setStepMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  // A step being looked at while the timer runs on another one.
+  const [viewingId, setViewingId] = useState<string | null>(null)
   // The latest completion that can still be undone, with its toast. A ref, not state, so
   // Ctrl+Z pressed the instant after Ctrl+Enter already sees it.
   const undoable = useRef<{ completion: Promise<CompleteResult>; toastId: number } | null>(null)
@@ -141,10 +144,27 @@ export function FocusPage() {
   }
 
   const isOurs = session.projectId === projectId
-  const subtask = isOurs ? subtasks?.find((s) => s.id === session.subtaskId) : undefined
+  const current = isOurs ? subtasks?.find((s) => s.id === session.subtaskId) : undefined
+  const running = isOurs && session.state === 'working'
+  // While work runs, moving between steps only changes what's on screen: the timer stays
+  // on the step it was started on until another one is started.
+  const viewing =
+    running && viewingId !== current?.id ? subtasks?.find((s) => s.id === viewingId && s.status === 'todo') : undefined
+  // The step on screen.
+  const subtask = viewing ?? current
   const segments = useSegmentsFor('subtaskId', subtask?.id)
   const subtaskWorkMs = workMs(segments, now)
-  const working = isOurs && session.state === 'working'
+  const working = running && !viewing
+  // The running step's own timebox prompt waits until it's back on screen, so note it meanwhile.
+  const runningSegments = useSegmentsFor('subtaskId', viewing ? current?.id : undefined)
+  const runningNearTimebox =
+    !!viewing &&
+    !!current &&
+    challenge?.subtaskId !== current.id &&
+    nearTimebox(current.timeboxMinutes, workMs(runningSegments, now), settings.timeboxPromptPercentLeft)
+  useEffect(() => {
+    if (!running) setViewingId(null)
+  }, [running])
   const onBreak = isOurs && session.state === 'break'
   const activeChallenge = challenge && subtask && challenge.subtaskId === subtask.id ? challenge : undefined
   const breakPrompt = isOurs && shouldShowBreakPrompt(session, settings, now)
@@ -152,6 +172,7 @@ export function FocusPage() {
   // Timebox prompt: once per subtask, when the configured minutes are left.
   const promptTimebox =
     !!subtask &&
+    !viewing &&
     shouldPromptTimebox({
       session,
       subtask,
@@ -174,10 +195,18 @@ export function FocusPage() {
   const prev = subtask ? adjacentTodo(chain, subtask.id, -1) : undefined
   const next = subtask ? adjacentTodo(chain, subtask.id, 1) : undefined
 
+  /** Starts work on the step on screen, moving the timer onto it if it runs on another. */
+  const startShown = async (via: Via) => {
+    if (!subtask) return
+    if (running) await dispatch({ type: 'switch', subtaskId: subtask.id }, via)
+    else await dispatch({ type: 'start', projectId, subtaskId: subtask.id }, via)
+    setViewingId(null)
+  }
+
   const toggleWork = (via: Via) => {
     if (!subtask) return
     if (working) void dispatch({ type: 'stop' }, via)
-    else void dispatch({ type: 'start', projectId, subtaskId: subtask.id }, via)
+    else void startShown(via)
   }
 
   const toggleBreak = (via: Via) => {
@@ -225,6 +254,8 @@ export function FocusPage() {
     }
     // Undone during the celebration moment: nothing more to celebrate.
     if (undone.current === completion) return
+    // A step finished while the timer ran on another: back to the running one.
+    if (!result.wasCurrent) setViewingId(null)
     if (result.challenge?.outcome === 'beat') {
       celebrateBig()
       showToast({
@@ -256,6 +287,8 @@ export function FocusPage() {
       return
     }
     await undoCompletion(result)
+    // Undo leaves the session alone for a step that wasn't current, so bring it back on screen.
+    if (!result.wasCurrent) await switchTo(result.subtaskId)
     setCelebration(null)
     setCompleted(null)
     setJustCompleted((n) => n + 1)
@@ -264,8 +297,17 @@ export function FocusPage() {
 
   const switchTo = async (id: string | undefined) => {
     if (!id) return
+    if (running) {
+      setViewingId(id === current?.id ? null : id)
+      return
+    }
     setTimeboxPromptFor(null)
     await dispatch({ type: 'switch', subtaskId: id })
+  }
+
+  const backToRunning = () => {
+    setViewingId(null)
+    startRef.current?.focus()
   }
 
   const beginChallenge = async (minutes: number, source: 'manual' | 'timeboxPrompt') => {
@@ -273,7 +315,7 @@ export function FocusPage() {
     setChallengeOpen(false)
     setTimeboxPromptFor(null)
     await startChallenge(subtask.id, minutes, source)
-    if (!working) await dispatch({ type: 'start', projectId, subtaskId: subtask.id }, 'focus')
+    if (!working) await startShown('focus')
   }
 
   const cancelChallenge = async () => {
@@ -397,7 +439,7 @@ export function FocusPage() {
         open={exitOpen}
         projectId={projectId}
         breadcrumb={project.breadcrumb?.text ?? ''}
-        working={working}
+        working={running}
         onCancel={() => setExitOpen(false)}
         onExited={() => navigate('/')}
       />
@@ -451,6 +493,26 @@ export function FocusPage() {
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setTimeboxPromptFor(null)}>
                 No thanks
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {viewing && current && !celebration && !completed && (
+          <div className={styles.banner} role="status" data-own-keys>
+            <Icon name="play" size={18} />
+            <span>
+              {`Your timer is still running on step ${chain.findIndex((s) => s.id === current.id) + 1}: “${shortTitle(current.title)}”`}
+              {runningNearTimebox && (
+                <span className={styles.bannerNote}>
+                  <Icon name="hourglass" size={14} />
+                  It's nearly at its timebox.
+                </span>
+              )}
+            </span>
+            <div className={styles.bannerActions}>
+              <Button size="sm" variant="primary" onClick={backToRunning}>
+                Back to it
               </Button>
             </div>
           </div>

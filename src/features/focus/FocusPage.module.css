@@ -109,6 +109,19 @@
   gap: var(--space-2);
 }
 
+.bannerNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-weight: 600;
+}
+
+.bannerNote svg {
+  color: var(--accent);
+  flex: none;
+}
+
 /* ---- Breadcrumb ---- */
 
 /* Same width as the notes underneath. */
