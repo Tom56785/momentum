@@ -4,7 +4,6 @@
     "title": "Fix duplicate emails on order confirmation",
     "externalKey": "SHOP-482",
     "summary": "Some customers receive two confirmation emails per order.",
-    "cause": "The payment webhook is retried and the handler is not idempotent.",
     "solution": "Store processed webhook IDs and skip duplicates.",
     "targetDate": "2026-10-22",
     "subtasks": [

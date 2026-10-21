@@ -12,7 +12,6 @@ const projectRow = z.object({
   url: z.string().optional(),
   summary: z.string().optional(),
   problem: z.string().optional(),
-  cause: z.string().optional(),
   solution: z.string().optional(),
   targetDate: z.string().optional(),
   status: z.enum(['active', 'done', 'archived']),

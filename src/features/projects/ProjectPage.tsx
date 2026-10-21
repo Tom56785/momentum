@@ -167,7 +167,6 @@ export function ProjectPage() {
           </div>
           <AutoField label="Summary" multiline value={project.summary} onSave={save('summary')} placeholder="The problem in a sentence or two" />
           <AutoField label="Problem" multiline value={project.problem} onSave={save('problem')} placeholder="What is wrong, from the user's side" />
-          <AutoField label="Cause" multiline value={project.cause} onSave={save('cause')} placeholder="Why it happens, technically" />
           <AutoField label="Solution" multiline value={project.solution} onSave={save('solution')} placeholder="The proposed fix" />
 
           <div className={styles.dangerZone}>

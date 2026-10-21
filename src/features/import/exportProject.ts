@@ -48,7 +48,6 @@ export function projectToImportDoc(
         url: valid(project.url, z.url()),
         summary: text(project.summary),
         problem: text(project.problem),
-        cause: text(project.cause),
         solution: text(project.solution),
         targetDate: valid(project.targetDate, z.iso.date()),
         subtasks: [...subtasks]

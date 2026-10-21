@@ -9,7 +9,7 @@ import type { Challenge, ParkingLotItem, Phase, Project, Subtask } from './types
 // ---------------------------------------------------------------- projects
 
 export type ProjectFields = Partial<
-  Pick<Project, 'title' | 'externalKey' | 'url' | 'summary' | 'problem' | 'cause' | 'solution' | 'targetDate'>
+  Pick<Project, 'title' | 'externalKey' | 'url' | 'summary' | 'problem' | 'solution' | 'targetDate'>
 >
 
 export async function createProject(fields: ProjectFields & { title: string }): Promise<string> {

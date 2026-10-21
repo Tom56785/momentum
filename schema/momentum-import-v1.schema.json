@@ -19,7 +19,6 @@
           "url":         { "type": "string", "format": "uri" },
           "summary":     { "type": "string", "description": "High-level problem in 1-2 sentences" },
           "problem":     { "type": "string", "description": "What is wrong, from the user's perspective" },
-          "cause":       { "type": "string", "description": "Why it is happening, technically" },
           "solution":    { "type": "string", "description": "Proposed fix" },
           "targetDate":  { "type": "string", "format": "date" },
           "subtasks": {

@@ -10,7 +10,6 @@ export interface Project {
   url?: string
   summary?: string // high-level problem
   problem?: string
-  cause?: string // technical reason
   solution?: string
   targetDate?: string // ISO date
   status: ProjectStatus

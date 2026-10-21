@@ -18,7 +18,6 @@ export const importProjectSchema = z.strictObject({
   url: z.url().optional(),
   summary: z.string().optional(),
   problem: z.string().optional(),
-  cause: z.string().optional(),
   solution: z.string().optional(),
   targetDate: z.iso.date().optional(),
   subtasks: z.array(importSubtaskSchema).min(1),
@@ -38,7 +37,7 @@ export const AI_PROMPT_TEMPLATE = `Summarise the ticket below into JSON that mat
 
 Rules:
 - schemaVersion is 1.
-- Fill summary, problem, cause and solution in plain language, 1-3 sentences each.
+- Fill summary, problem and solution in plain language, 1-3 sentences each.
 - Break the work into 5-12 subtasks in the order they should be done.
 - Each subtask title starts with a verb and is small enough to start in under 2 minutes.
 - The first subtask is always a tiny, easy step (e.g. "Read the ticket and summary").

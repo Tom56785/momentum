@@ -27,7 +27,6 @@ function projectFields(p: ImportProject) {
     url: p.url,
     summary: p.summary,
     problem: p.problem,
-    cause: p.cause,
     solution: p.solution,
     targetDate: p.targetDate,
   }

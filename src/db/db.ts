@@ -27,6 +27,15 @@ export class MomentumDB extends Dexie {
       subtasks: 'id, projectId, [projectId+order], status, *tags',
       tags: 'id, name',
     })
+    // Projects no longer have a cause: drop it from the ones saved before.
+    this.version(3).upgrade((tx) =>
+      tx
+        .table('projects')
+        .toCollection()
+        .modify((project) => {
+          delete project.cause
+        }),
+    )
   }
 }
 
