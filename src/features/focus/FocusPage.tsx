@@ -62,7 +62,7 @@ interface Celebration {
   early: boolean
 }
 
-/** How long Undo stays available after completing a step. */
+/** How long Undo stays available once a completed step's celebration moment is over. */
 const UNDO_MS = 6000
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -236,18 +236,18 @@ export function FocusPage() {
     // Keep Space meaning start/stop rather than "complete again".
     startRef.current?.focus()
     const completion = completeSubtask(subtask.id, 'focus')
+    const hold = early ? EARLY_CELEBRATION_MS : reducedMotion() ? 500 : CELEBRATION_MS
     const toastId = showToast({
       text: `Completed “${shortTitle(subtask.title)}”`,
-      duration: UNDO_MS,
+      duration: hold + UNDO_MS,
       action: { label: 'Undo', run: () => void undo(completion) },
     })
     undoable.current = { completion, toastId }
     setTimeout(() => {
       if (undoable.current?.completion === completion) undoable.current = null
-    }, UNDO_MS)
+    }, hold + UNDO_MS)
     let result: CompleteResult
     try {
-      const hold = early ? EARLY_CELEBRATION_MS : reducedMotion() ? 500 : CELEBRATION_MS
       ;[result] = await Promise.all([completion, pause(hold)])
     } catch {
       dismissToast(toastId)
