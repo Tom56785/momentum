@@ -50,7 +50,9 @@ import { TimeRow } from './TimeRow'
 import { useFullscreen } from './useFullscreen'
 
 /** How long a finished step stays on screen, celebrating, before the next one slides in. */
-const CELEBRATION_MS = 1200
+const CELEBRATION_MS = 2600
+/** Finishing inside the timebox earns a longer moment, so its message can be read. */
+const EARLY_CELEBRATION_MS = 4000
 const DONE_MESSAGES = ['Step done', 'Nice work', 'Done — onwards', 'One more down']
 
 interface Celebration {
@@ -245,7 +247,8 @@ export function FocusPage() {
     }, UNDO_MS)
     let result: CompleteResult
     try {
-      ;[result] = await Promise.all([completion, pause(reducedMotion() ? 500 : CELEBRATION_MS)])
+      const hold = early ? EARLY_CELEBRATION_MS : reducedMotion() ? 500 : CELEBRATION_MS
+      ;[result] = await Promise.all([completion, pause(hold)])
     } catch {
       dismissToast(toastId)
       if (undoable.current?.completion === completion) undoable.current = null

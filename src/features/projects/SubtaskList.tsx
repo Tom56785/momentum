@@ -161,7 +161,7 @@ function SubtaskRow({ subtask, allTags, index, count, dragging, dropBefore, drop
     const result = await completeSubtask(subtask.id, 'button')
     if (result.earlyByMs !== undefined && !result.projectCompleted) {
       celebrateEarly(el)
-      showToast({ text: earlyFinishMessage(result.earlyByMs), tone: 'celebrate' })
+      showToast({ text: earlyFinishMessage(result.earlyByMs), tone: 'celebrate', duration: 4000 })
     }
     if (result.projectCompleted) {
       celebrateBig()
