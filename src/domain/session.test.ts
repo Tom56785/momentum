@@ -57,6 +57,13 @@ describe('session transitions', () => {
     expect(t.session.continuousWorkSince).toBe(T0) // continuity carries over
   })
 
+  it('completing with a later start opens the next segment from then', () => {
+    const working = run(idle, { type: 'start', projectId: 'p', subtaskId: 's1' }, T0).session
+    const t = run(working, { type: 'complete', nextSubtaskId: 's2', startNextAt: T0 + 3000 }, T0)
+    expect(t.closeAt).toBe(T0)
+    expect(t.open).toMatchObject({ subtaskId: 's2', startedAt: T0 + 3000 })
+  })
+
   it('completing the last subtask while working pauses and lets go of the finished step', () => {
     const working = run(idle, { type: 'start', projectId: 'p', subtaskId: 's1' }, T0).session
     const t = run(working, { type: 'complete' }, T0 + MINUTE)

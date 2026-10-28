@@ -21,6 +21,7 @@ import { logEvent } from '../../db/store'
 import {
   adjacentTodo,
   beatTimeboxMinutes,
+  challengeElapsedMs,
   earlyFinishMessage,
   earlyFinishMs,
   nearTimebox,
@@ -51,7 +52,7 @@ import { useFullscreen } from './useFullscreen'
 
 /** How long a finished step stays on screen, celebrating, before the next one slides in. */
 const CELEBRATION_MS = 2600
-/** Finishing inside the timebox earns a longer moment, so its message can be read. */
+/** Finishing inside the timebox or beating a challenge earns a longer moment, so it can sink in. */
 const EARLY_CELEBRATION_MS = 4000
 const DONE_MESSAGES = ['Step done', 'Nice work', 'Done — onwards', 'One more down']
 
@@ -224,6 +225,9 @@ export function FocusPage() {
     // for a moment of celebration before the next one slides in.
     const spare = earlyFinishMs(subtask.timeboxMinutes, subtaskWorkMs)
     const early = spare !== undefined
+    // The same test completeSubtask applies, so a challenge win (and any personal best) gets the long hold.
+    const challengeBeaten =
+      !!activeChallenge && challengeElapsedMs(activeChallenge, subtaskWorkMs) <= activeChallenge.targetMinutes * MINUTE
     setCelebration({
       subtask,
       index: chain.findIndex((s) => s.id === subtask.id),
@@ -235,8 +239,9 @@ export function FocusPage() {
     setJustCompleted((n) => n + 1)
     // Keep Space meaning start/stop rather than "complete again".
     startRef.current?.focus()
-    const completion = completeSubtask(subtask.id, 'focus')
-    const hold = early ? EARLY_CELEBRATION_MS : reducedMotion() ? 500 : CELEBRATION_MS
+    const hold = early || challengeBeaten ? EARLY_CELEBRATION_MS : reducedMotion() ? 500 : CELEBRATION_MS
+    // Work on the next step counts from when it slides in, not from the moment this one is done.
+    const completion = completeSubtask(subtask.id, 'focus', Date.now() + hold)
     const toastId = showToast({
       text: `Completed “${shortTitle(subtask.title)}”`,
       duration: hold + UNDO_MS,

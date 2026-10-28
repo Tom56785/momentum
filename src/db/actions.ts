@@ -198,9 +198,10 @@ export interface CompleteResult {
 
 /**
  * Marks a subtask done. If it is the session's current subtask, work moves on to the next
- * one (time stays attributed correctly). Completes the project when nothing is left.
+ * one (time stays attributed correctly), counting from `startNextAt` when given. Completes
+ * the project when nothing is left.
  */
-export async function completeSubtask(id: string, via: Via = 'focus'): Promise<CompleteResult> {
+export async function completeSubtask(id: string, via: Via = 'focus', startNextAt?: number): Promise<CompleteResult> {
   return db.transaction('rw', [db.subtasks, db.projects, ...SESSION_TABLES], async () => {
     const subtask = await db.subtasks.get(id)
     if (!subtask || subtask.status === 'done') return { projectCompleted: false }
@@ -211,7 +212,7 @@ export async function completeSubtask(id: string, via: Via = 'focus'): Promise<C
     const session = await getSession()
     const stoppedWork = session.subtaskId === id && session.state === 'working' && !next
     if (session.subtaskId === id) {
-      await applyAction({ type: 'complete', nextSubtaskId: next?.id }, via, now)
+      await applyAction({ type: 'complete', nextSubtaskId: next?.id, startNextAt }, via, now)
     }
 
     await db.subtasks.update(id, { status: 'done', completedAt: now })

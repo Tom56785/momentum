@@ -8,8 +8,11 @@ export type SessionAction =
   /** Start work on the given (or current) subtask. From a break this behaves like resume. */
   | { type: 'start'; projectId?: string; subtaskId?: string }
   | { type: 'stop' }
-  /** The current subtask was completed; continue on `nextSubtaskId` if any. */
-  | { type: 'complete'; nextSubtaskId?: string }
+  /**
+   * The current subtask was completed; continue on `nextSubtaskId` if any. Work on it
+   * counts from `startNextAt` when given (after the finished step's celebration moment).
+   */
+  | { type: 'complete'; nextSubtaskId?: string; startNextAt?: number }
   | { type: 'switch'; subtaskId: string }
   /** Point the session at a project (entering focus). Never starts the timer. */
   | { type: 'target'; projectId: string; subtaskId?: string }
@@ -135,7 +138,11 @@ export function transition(session: Session, action: SessionAction, ctx: Transit
     case 'complete': {
       if (s.state === 'working') {
         if (action.nextSubtaskId && s.projectId) {
-          const open = workSegment(ctx, s.projectId, action.nextSubtaskId)
+          // A segment starting later counts nothing until then, and closes empty if left sooner.
+          const open = {
+            ...workSegment(ctx, s.projectId, action.nextSubtaskId),
+            startedAt: Math.max(ctx.now, action.startNextAt ?? ctx.now),
+          }
           const next: Session = { ...s, subtaskId: action.nextSubtaskId, openSegmentId: open.id }
           return { session: next, closeAt: ctx.now, open, events: [] }
         }
